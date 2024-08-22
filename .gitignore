@@ -1,0 +1,5 @@
+venv
+.vscode
+*.bak
+__pycache__
+data

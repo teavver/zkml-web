@@ -1,4 +1,4 @@
-import argparse, torch, ssl, base64, io
+import argparse, torch, ssl, base64, io, random
 from PIL import Image
 import torch.nn as nn
 import torch.nn.functional as F
@@ -139,8 +139,7 @@ def main():
         test(model, device, test_loader)
         scheduler.step()
 
-    torch.save(model.state_dict(), "mnist_cnn.pt")
-    
+    # torch.save(model.state_dict(), "mnist_cnn.pt")
     
 def file_to_b64(fname: str):
     ext = fname.split('.')[-1]
@@ -158,8 +157,9 @@ def conv_b64_tensor(b64: str):
     
     preprocess = transforms.Compose([
         transforms.Grayscale(),
-        transforms.Resize((32, 32)),
+        transforms.Resize((28, 28)),
         transforms.ToTensor(),
+        transforms.Lambda(lambda x: 1 - x), # invert colors
     ])
     
     input_tensor = preprocess(img)
@@ -171,11 +171,21 @@ def display_tensor(tensor):
     plt.axis('off')
     plt.show()
 
+def predict(model, tensor):
+    if tensor.dim() == 3:
+        tensor = tensor.unsqueeze(0)  # Add batch dimension if missing
+    device = next(model.parameters()).device
+    input_tensor = tensor.to(device)
+    model.eval()
+    with torch.no_grad():
+        output = model(input_tensor)
+        prediction = output.argmax(dim=1).item()
+    return prediction
+
 if __name__ == '__main__':
-    # main()
-    b64 = file_to_b64("test.png")
-    print(b64)
-    tensor = conv_b64_tensor(b64)
-    # display_tensor(tensor)
-    
-    
+    net = Net()
+    net.load_state_dict(torch.load("mnist_cnn.pt"))
+    b64 = file_to_b64("test2.png")
+    custom_tensor = conv_b64_tensor(b64)
+    res = predict(net, custom_tensor)
+    print(res)

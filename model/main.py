@@ -1,4 +1,4 @@
-import argparse, torch, ssl, base64, io, random
+import argparse, torch, ssl, base64, io, random, os
 from PIL import Image
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,6 +9,7 @@ import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 
 ssl._create_default_https_context = ssl._create_unverified_context
+
 
 class Net(nn.Module):
     def __init__(self):
@@ -46,9 +47,15 @@ def train(args, model, device, train_loader, optimizer, epoch):
         loss.backward()
         optimizer.step()
         if batch_idx % args.log_interval == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                epoch, batch_idx * len(data), len(train_loader.dataset),
-                100. * batch_idx / len(train_loader), loss.item()))
+            print(
+                "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
+                    epoch,
+                    batch_idx * len(data),
+                    len(train_loader.dataset),
+                    100.0 * batch_idx / len(train_loader),
+                    loss.item(),
+                )
+            )
             if args.dry_run:
                 break
 
@@ -61,42 +68,95 @@ def test(model, device, test_loader):
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
             output = model(data)
-            test_loss += F.nll_loss(output, target, reduction='sum').item()  # sum up batch loss
-            pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+            test_loss += F.nll_loss(
+                output, target, reduction="sum"
+            ).item()  # sum up batch loss
+            pred = output.argmax(
+                dim=1, keepdim=True
+            )  # get the index of the max log-probability
             correct += pred.eq(target.view_as(pred)).sum().item()
 
     test_loss /= len(test_loader.dataset)
 
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss, correct, len(test_loader.dataset),
-        100. * correct / len(test_loader.dataset)))
+    print(
+        "\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n".format(
+            test_loss,
+            correct,
+            len(test_loader.dataset),
+            100.0 * correct / len(test_loader.dataset),
+        )
+    )
 
 
 def main():
     # Training settings
-    parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-    parser.add_argument('--batch-size', type=int, default=64, metavar='N',
-                        help='input batch size for training (default: 64)')
-    parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
-                        help='input batch size for testing (default: 1000)')
-    parser.add_argument('--epochs', type=int, default=14, metavar='N',
-                        help='number of epochs to train (default: 14)')
-    parser.add_argument('--lr', type=float, default=1.0, metavar='LR',
-                        help='learning rate (default: 1.0)')
-    parser.add_argument('--gamma', type=float, default=0.7, metavar='M',
-                        help='Learning rate step gamma (default: 0.7)')
-    parser.add_argument('--no-cuda', action='store_true', default=False,
-                        help='disables CUDA training')
-    parser.add_argument('--no-mps', action='store_true', default=False,
-                        help='disables macOS GPU training')
-    parser.add_argument('--dry-run', action='store_true', default=False,
-                        help='quickly check a single pass')
-    parser.add_argument('--seed', type=int, default=1, metavar='S',
-                        help='random seed (default: 1)')
-    parser.add_argument('--log-interval', type=int, default=10, metavar='N',
-                        help='how many batches to wait before logging training status')
-    parser.add_argument('--save-model', action='store_true', default=False,
-                        help='For Saving the current Model')
+    parser = argparse.ArgumentParser(description="PyTorch MNIST Example")
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=64,
+        metavar="N",
+        help="input batch size for training (default: 64)",
+    )
+    parser.add_argument(
+        "--test-batch-size",
+        type=int,
+        default=1000,
+        metavar="N",
+        help="input batch size for testing (default: 1000)",
+    )
+    parser.add_argument(
+        "--epochs",
+        type=int,
+        default=14,
+        metavar="N",
+        help="number of epochs to train (default: 14)",
+    )
+    parser.add_argument(
+        "--lr",
+        type=float,
+        default=1.0,
+        metavar="LR",
+        help="learning rate (default: 1.0)",
+    )
+    parser.add_argument(
+        "--gamma",
+        type=float,
+        default=0.7,
+        metavar="M",
+        help="Learning rate step gamma (default: 0.7)",
+    )
+    parser.add_argument(
+        "--no-cuda", action="store_true", default=False, help="disables CUDA training"
+    )
+    parser.add_argument(
+        "--no-mps",
+        action="store_true",
+        default=False,
+        help="disables macOS GPU training",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        default=False,
+        help="quickly check a single pass",
+    )
+    parser.add_argument(
+        "--seed", type=int, default=1, metavar="S", help="random seed (default: 1)"
+    )
+    parser.add_argument(
+        "--log-interval",
+        type=int,
+        default=10,
+        metavar="N",
+        help="how many batches to wait before logging training status",
+    )
+    parser.add_argument(
+        "--save-model",
+        action="store_true",
+        default=False,
+        help="For Saving the current Model",
+    )
     args = parser.parse_args()
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     use_mps = not args.no_mps and torch.backends.mps.is_available()
@@ -110,24 +170,19 @@ def main():
     else:
         device = torch.device("cpu")
 
-    train_kwargs = {'batch_size': args.batch_size}
-    test_kwargs = {'batch_size': args.test_batch_size}
+    train_kwargs = {"batch_size": args.batch_size}
+    test_kwargs = {"batch_size": args.test_batch_size}
     if use_cuda:
-        cuda_kwargs = {'num_workers': 1,
-                       'pin_memory': True,
-                       'shuffle': True}
+        cuda_kwargs = {"num_workers": 1, "pin_memory": True, "shuffle": True}
         train_kwargs.update(cuda_kwargs)
         test_kwargs.update(cuda_kwargs)
 
-    transform=transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
-        ])
-    dataset1 = datasets.MNIST('../data', train=True, download=True,
-                       transform=transform)
-    dataset2 = datasets.MNIST('../data', train=False,
-                       transform=transform)
-    train_loader = torch.utils.data.DataLoader(dataset1,**train_kwargs)
+    transform = transforms.Compose(
+        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+    )
+    dataset1 = datasets.MNIST("../data", train=True, download=True, transform=transform)
+    dataset2 = datasets.MNIST("../data", train=False, transform=transform)
+    train_loader = torch.utils.data.DataLoader(dataset1, **train_kwargs)
     test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
 
     model = Net().to(device)
@@ -139,37 +194,57 @@ def main():
         test(model, device, test_loader)
         scheduler.step()
 
-    # torch.save(model.state_dict(), "mnist_cnn.pt")
-    
+    torch.save(model.state_dict(), "mnist_cnn.pt")
+
+
+def export_to_onnx(model: Net):
+    model.eval()
+    x = 0.1 * torch.rand(1, *[1, 28, 28], requires_grad=True)
+    model_path = os.path.join("network.onnx")
+    # https://colab.research.google.com/github/zkonduit/ezkl/blob/main/examples/notebooks/simple_demo_all_public.ipynb#scrollTo=82db373a
+    torch.onnx.export(
+        model,
+        x,
+        model_path,
+        export_params=True,
+        opset_version=10,
+        do_constant_folding=True,
+        input_names=["input"],
+        output_names=["output"],
+        dynamic_axes={
+            "input": {0: "batch_size"},
+            "output": {0: "batch_size"},
+        },
+    )
+
+
 def file_to_b64(fname: str):
-    ext = fname.split('.')[-1]
-    prefix = f'data:image/{ext};base64,'
-    with open(fname, 'rb') as f:
+    ext = fname.split(".")[-1]
+    prefix = f"data:image/{ext};base64,"
+    with open(fname, "rb") as f:
         img = f.read()
-    return prefix + base64.b64encode(img).decode('utf-8')
-    
+    return prefix + base64.b64encode(img).decode("utf-8")
+
+
 def conv_b64_tensor(b64: str):
-    if ',' in b64:
-        b64 = b64.split(',', 1)[1]
+    if "," in b64:
+        b64 = b64.split(",", 1)[1]
 
     data = base64.b64decode(b64)
     img = Image.open(io.BytesIO(data))
-    
-    preprocess = transforms.Compose([
-        transforms.Grayscale(),
-        transforms.Resize((28, 28)),
-        transforms.ToTensor(),
-        transforms.Lambda(lambda x: 1 - x), # invert colors
-    ])
-    
+
+    preprocess = transforms.Compose(
+        [
+            transforms.Grayscale(),
+            transforms.Resize((28, 28)),
+            transforms.ToTensor(),
+            transforms.Lambda(lambda x: 1 - x),  # invert colors
+        ]
+    )
+
     input_tensor = preprocess(img)
     return input_tensor
 
-def display_tensor(tensor):
-    img = tensor.squeeze().numpy()
-    plt.imshow(img, cmap='gray')
-    plt.axis('off')
-    plt.show()
 
 def predict(model, tensor):
     if tensor.dim() == 3:
@@ -182,10 +257,14 @@ def predict(model, tensor):
         prediction = output.argmax(dim=1).item()
     return prediction
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
+    # main()
     net = Net()
     net.load_state_dict(torch.load("mnist_cnn.pt"))
-    b64 = file_to_b64("test2.png")
-    custom_tensor = conv_b64_tensor(b64)
-    res = predict(net, custom_tensor)
-    print(res)
+    export_to_onnx(net)
+    # b64 = file_to_b64("test2.png")
+    # custom_tensor = conv_b64_tensor(b64)
+    # print(custom_tensor.shape)
+    # res = predict(net, custom_tensor)
+    # print(res)

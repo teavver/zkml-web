@@ -1,4 +1,5 @@
-import argparse, torch, ssl, base64, io, random, os
+import argparse, torch, ssl, base64, io, os, ezkl, json, asyncio
+from time import time
 from PIL import Image
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,6 +10,18 @@ import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 
 ssl._create_default_https_context = ssl._create_unverified_context
+
+PATHS = {
+    "model_compiled": "mnist_cnn.pt",
+    "model_onnx": "network.onnx",
+    # EZKL
+    "input": "input.json",
+    "settings": "settings.json",
+    "pk": "prover_key.pk",
+    "vk": "verifier_key.vk",
+    "calibration": "calibration.json",
+    "witness": "witness.json",
+}
 
 
 class Net(nn.Module):
@@ -194,13 +207,13 @@ def main():
         test(model, device, test_loader)
         scheduler.step()
 
-    torch.save(model.state_dict(), "mnist_cnn.pt")
+    torch.save(model.state_dict(), PATHS["model_compiled"])
 
 
 def export_to_onnx(model: Net):
     model.eval()
     x = 0.1 * torch.rand(1, *[1, 28, 28], requires_grad=True)
-    model_path = os.path.join("network.onnx")
+    model_path = os.path.join(PATHS["model_onnx"])
     # https://colab.research.google.com/github/zkonduit/ezkl/blob/main/examples/notebooks/simple_demo_all_public.ipynb#scrollTo=82db373a
     torch.onnx.export(
         model,
@@ -216,6 +229,62 @@ def export_to_onnx(model: Net):
             "output": {0: "batch_size"},
         },
     )
+
+    data_array = ((x).detach().numpy()).reshape([-1]).tolist()
+    data = dict(input_data=[data_array])
+    json.dump(data, open(PATHS["input"], "w"))
+
+
+async def configure_ezkl(model_onnx_path: str = PATHS["model_onnx"]):
+    # first make sure model was exported to onnx and input.json is present
+    assert os.path.exists(PATHS["model_onnx"]), "No .onnx model found"
+    assert os.path.exists(
+        PATHS["input"]
+    ), "No input.json found. Did you run export_to_onnx?"
+
+    py_run_args = ezkl.PyRunArgs()
+    py_run_args.input_visibility = "public"
+    py_run_args.output_visibility = "public"
+    py_run_args.param_visibility = "fixed"
+
+    res = ezkl.gen_settings(model_onnx_path, PATHS["settings"], py_run_args=py_run_args)
+    assert res == True  # Make sure we good before calibrating
+    print("ezkl settings OK")
+
+    data_array = (
+        (torch.rand(20, *[1, 28, 28], requires_grad=True).detach().numpy())
+        .reshape([-1])
+        .tolist()
+    )
+    data = dict(input_data=[data_array])
+    json.dump(data, open(PATHS["calibration"], "w"))  # Dump calibration.json
+
+    await ezkl.calibrate_settings(
+        PATHS["calibration"], model_onnx_path, PATHS["settings"], "resources"
+    )
+    print("ezkl calibration OK")
+
+    res = ezkl.compile_circuit(
+        model_onnx_path, PATHS["model_compiled"], PATHS["settings"]
+    )
+    assert res == True
+    print("ezkl circuit OK")
+
+    res = ezkl.get_srs(PATHS["settings"])
+    print(res)
+
+    res = await ezkl.gen_witness(
+        "input.json", PATHS["model_compiled"], PATHS["witness"]
+    )
+    assert res == True
+    assert os.path.isfile(PATHS["witness"])
+
+    res = ezkl.setup(
+        PATHS["model_compiled"],
+        PATHS["vk"],
+        PATHS["pk"],
+    )
+    assert res == True
 
 
 def file_to_b64(fname: str):
@@ -258,11 +327,20 @@ def predict(model, tensor):
     return prediction
 
 
-if __name__ == "__main__":
-    # main()
+async def setup_ezkl():
+    start = time()
     net = Net()
-    net.load_state_dict(torch.load("mnist_cnn.pt"))
+    net.load_state_dict(torch.load(PATHS["model_compiled"]))
     export_to_onnx(net)
+    await configure_ezkl()
+    print(5)
+    end = time()
+    print(f"Done in ${end - start}")
+
+
+if __name__ == "__main__":
+    asyncio.run(setup_ezkl())
+    # main()
     # b64 = file_to_b64("test2.png")
     # custom_tensor = conv_b64_tensor(b64)
     # print(custom_tensor.shape)

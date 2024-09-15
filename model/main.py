@@ -22,6 +22,7 @@ PATHS = {
     "vk": "verifier_key.vk",
     "calibration": "calibration.json",
     "witness": "witness.json",
+    "srs": "srs",
 }
 
 
@@ -236,6 +237,16 @@ def export_to_onnx(model: Net):
     json.dump(data, open(PATHS["input"], "w"))
 
 
+async def clear_ezkl_conf():
+    for path in PATHS:
+        if not "model" in path:
+            if "calibration" in PATHS[path]:
+                continue
+            if os.path.isfile(PATHS[path]):
+                os.remove(PATHS[path])
+                print(f"File {PATHS[path]} removed")
+
+
 async def configure_ezkl(model_onnx_path: str = PATHS["model_onnx"]):
     # first make sure model was exported to onnx and input.json is present
     assert os.path.isfile(PATHS["model_onnx"]), "No .onnx model found"
@@ -273,19 +284,24 @@ async def configure_ezkl(model_onnx_path: str = PATHS["model_onnx"]):
     assert res == True
     print("ezkl circuit OK")
 
-    res = await ezkl.get_srs(PATHS["settings"])
-    assert res == True
+    if not os.path.isfile(PATHS["srs"]):
+        res = await ezkl.get_srs(PATHS["settings"], None, PATHS["srs"])
+        assert res == True
+        assert os.path.isfile(PATHS["srs"])
 
     if not os.path.isfile(PATHS["witness"]):
         res = await ezkl.gen_witness(
             PATHS["input"], PATHS["model_compiled"], PATHS["witness"]
         )
-        assert res == True
         assert os.path.isfile(PATHS["witness"])
 
     print("running ezkl setup...")
 
-    res = await ezkl.setup(PATHS["model_compiled"], PATHS["vk"], PATHS["pk"])
+    res = ezkl.setup(
+        PATHS["model_compiled"],
+        PATHS["vk"],
+        PATHS["pk"],
+    )
     assert res == True
     assert os.path.isfile(PATHS["vk"])
     assert os.path.isfile(PATHS["pk"])
@@ -337,9 +353,9 @@ async def setup_ezkl():
     start = time()
     net = Net()
     net.load_state_dict(torch.load(PATHS["model"]))
+    await clear_ezkl_conf()
     export_to_onnx(net)
     await configure_ezkl()
-    print(5)
     end = time()
     print(f"Done in {int(end - start)}")
 

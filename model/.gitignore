@@ -8,3 +8,5 @@ prover_key.pk
 verifier_key.vk
 witness.json
 *.compiled
+srs
+*calibration*

@@ -12,7 +12,8 @@ import matplotlib.pyplot as plt
 ssl._create_default_https_context = ssl._create_unverified_context
 
 PATHS = {
-    "model_compiled": "mnist_cnn.pt",
+    "model": "mnist_cnn.pt",
+    "model_compiled": "mnist.compiled",
     "model_onnx": "network.onnx",
     # EZKL
     "input": "input.json",
@@ -237,8 +238,8 @@ def export_to_onnx(model: Net):
 
 async def configure_ezkl(model_onnx_path: str = PATHS["model_onnx"]):
     # first make sure model was exported to onnx and input.json is present
-    assert os.path.exists(PATHS["model_onnx"]), "No .onnx model found"
-    assert os.path.exists(
+    assert os.path.isfile(PATHS["model_onnx"]), "No .onnx model found"
+    assert os.path.isfile(
         PATHS["input"]
     ), "No input.json found. Did you run export_to_onnx?"
 
@@ -251,18 +252,20 @@ async def configure_ezkl(model_onnx_path: str = PATHS["model_onnx"]):
     assert res == True  # Make sure we good before calibrating
     print("ezkl settings OK")
 
-    data_array = (
-        (torch.rand(20, *[1, 28, 28], requires_grad=True).detach().numpy())
-        .reshape([-1])
-        .tolist()
-    )
-    data = dict(input_data=[data_array])
-    json.dump(data, open(PATHS["calibration"], "w"))  # Dump calibration.json
+    # Skip this part if already exists - expensive
+    if not os.path.isfile(PATHS["calibration"]):
+        data_array = (
+            (torch.rand(20, *[1, 28, 28], requires_grad=True).detach().numpy())
+            .reshape([-1])
+            .tolist()
+        )
+        data = dict(input_data=[data_array])
+        json.dump(data, open(PATHS["calibration"], "w"))  # Dump calibration.json
 
-    await ezkl.calibrate_settings(
-        PATHS["calibration"], model_onnx_path, PATHS["settings"], "resources"
-    )
-    print("ezkl calibration OK")
+        await ezkl.calibrate_settings(
+            PATHS["calibration"], model_onnx_path, PATHS["settings"], "resources"
+        )
+        print("ezkl calibration OK")
 
     res = ezkl.compile_circuit(
         model_onnx_path, PATHS["model_compiled"], PATHS["settings"]
@@ -270,21 +273,24 @@ async def configure_ezkl(model_onnx_path: str = PATHS["model_onnx"]):
     assert res == True
     print("ezkl circuit OK")
 
-    res = ezkl.get_srs(PATHS["settings"])
-    print(res)
-
-    res = await ezkl.gen_witness(
-        "input.json", PATHS["model_compiled"], PATHS["witness"]
-    )
+    res = await ezkl.get_srs(PATHS["settings"])
     assert res == True
-    assert os.path.isfile(PATHS["witness"])
 
-    res = ezkl.setup(
-        PATHS["model_compiled"],
-        PATHS["vk"],
-        PATHS["pk"],
-    )
+    if not os.path.isfile(PATHS["witness"]):
+        res = await ezkl.gen_witness(
+            PATHS["input"], PATHS["model_compiled"], PATHS["witness"]
+        )
+        assert res == True
+        assert os.path.isfile(PATHS["witness"])
+
+    print("running ezkl setup...")
+
+    res = await ezkl.setup(PATHS["model_compiled"], PATHS["vk"], PATHS["pk"])
     assert res == True
+    assert os.path.isfile(PATHS["vk"])
+    assert os.path.isfile(PATHS["pk"])
+    assert os.path.isfile(PATHS["settings"])
+    print("ezkl setup complete")
 
 
 def file_to_b64(fname: str):
@@ -330,12 +336,12 @@ def predict(model, tensor):
 async def setup_ezkl():
     start = time()
     net = Net()
-    net.load_state_dict(torch.load(PATHS["model_compiled"]))
+    net.load_state_dict(torch.load(PATHS["model"]))
     export_to_onnx(net)
     await configure_ezkl()
     print(5)
     end = time()
-    print(f"Done in ${end - start}")
+    print(f"Done in {int(end - start)}")
 
 
 if __name__ == "__main__":

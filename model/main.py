@@ -266,7 +266,7 @@ async def configure_ezkl(model_onnx_path: str = PATHS["model_onnx"]):
     # Skip this part if already exists - expensive
     if not os.path.isfile(PATHS["calibration"]):
         data_array = (
-            (torch.rand(20, *[1, 28, 28], requires_grad=True).detach().numpy())
+            (torch.rand(10, *[1, 28, 28], requires_grad=True).detach().numpy())
             .reshape([-1])
             .tolist()
         )
@@ -301,6 +301,8 @@ async def configure_ezkl(model_onnx_path: str = PATHS["model_onnx"]):
         PATHS["model_compiled"],
         PATHS["vk"],
         PATHS["pk"],
+        PATHS["srs"],
+        PATHS["witness"],
     )
     assert res == True
     assert os.path.isfile(PATHS["vk"])

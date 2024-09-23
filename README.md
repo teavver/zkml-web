@@ -1,2 +1,2 @@
-# praas-zk
-Zero-knowledge powered Prediction as a Service (PraaS)
+
+`conda create --name <NAME> --file requirements_conda.txt python=3.12`

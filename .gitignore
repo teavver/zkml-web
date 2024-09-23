@@ -3,3 +3,6 @@ venv
 *.bak
 __pycache__
 data
+
+# 
+*.log

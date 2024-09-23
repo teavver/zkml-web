@@ -9,10 +9,11 @@ from torch.optim.lr_scheduler import StepLR
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 
-ssl._create_default_https_context = ssl._create_unverified_context
+# Most of the code here comes from this example notebook:
+# https://colab.research.google.com/github/zkonduit/ezkl/blob/main/examples/notebooks/simple_demo_public_network_output
 
 PATHS = {
-    "model": "mnist_cnn.pt",
+    "model": "mnist.pt",
     "model_compiled": "mnist.compiled",
     "model_onnx": "network.onnx",
     # EZKL
@@ -29,28 +30,29 @@ PATHS = {
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(1, 32, 3, 1)
-        self.conv2 = nn.Conv2d(32, 64, 3, 1)
-        self.dropout1 = nn.Dropout(0.25)
-        self.dropout2 = nn.Dropout(0.5)
-        self.fc1 = nn.Linear(9216, 128)
-        self.fc2 = nn.Linear(128, 10)
+
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=2, kernel_size=5, stride=2)
+        self.conv2 = nn.Conv2d(in_channels=2, out_channels=3, kernel_size=5, stride=2)
+
+        self.relu = nn.ReLU()
+
+        self.d1 = nn.Linear(48, 48)
+        self.d2 = nn.Linear(48, 10)
 
     def forward(self, x):
+        # 32x1x28x28 => 32x32x26x26
         x = self.conv1(x)
-        x = F.relu(x)
+        x = self.relu(x)
         x = self.conv2(x)
-        x = F.relu(x)
-        x = F.max_pool2d(x, 2)
-        x = self.dropout1(x)
-        x = torch.flatten(x, 1)
-        x = self.fc1(x)
-        x = F.relu(x)
-        x = self.dropout2(x)
-        x = self.fc2(x)
-        output = F.log_softmax(x, dim=1)
-        return output
-
+        x = self.relu(x)
+        # flatten => 32 x (32*26*26)
+        x = x.flatten(start_dim = 1)
+        # 32 x (32*26*26) => 32x128
+        x = self.d1(x)
+        x = self.relu(x)
+        # logits => 32x10
+        logits = self.d2(x)
+        return logits
 
 def train(args, model, device, train_loader, optimizer, epoch):
     model.train()
@@ -58,48 +60,34 @@ def train(args, model, device, train_loader, optimizer, epoch):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)
-        loss = F.nll_loss(output, target)
+        loss = F.cross_entropy(output, target)
         loss.backward()
         optimizer.step()
         if batch_idx % args.log_interval == 0:
             print(
-                "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
-                    epoch,
-                    batch_idx * len(data),
-                    len(train_loader.dataset),
-                    100.0 * batch_idx / len(train_loader),
-                    loss.item(),
-                )
+                f"Train Epoch: {epoch} [{batch_idx * len(data)}/{len(train_loader.dataset)} "
+                f"({100.0 * batch_idx / len(train_loader):.0f}%)]\tLoss: {loss.item():.6f}"
             )
             if args.dry_run:
                 break
-
-
+            
 def test(model, device, test_loader):
     model.eval()
-    test_loss = 0
+    test_loss = 0.0
     correct = 0
+
     with torch.no_grad():
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
             output = model(data)
-            test_loss += F.nll_loss(
-                output, target, reduction="sum"
-            ).item()  # sum up batch loss
-            pred = output.argmax(
-                dim=1, keepdim=True
-            )  # get the index of the max log-probability
+            test_loss += F.cross_entropy(output, target, reduction="sum").item()
+            pred = output.argmax(dim=1, keepdim=True)
             correct += pred.eq(target.view_as(pred)).sum().item()
 
     test_loss /= len(test_loader.dataset)
-
     print(
-        "\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n".format(
-            test_loss,
-            correct,
-            len(test_loader.dataset),
-            100.0 * correct / len(test_loader.dataset),
-        )
+        f"\nTest set: Average loss: {test_loss:.4f}, Accuracy: {correct}/{len(test_loader.dataset)} "
+        f"({100.0 * correct / len(test_loader.dataset):.0f}%)\n"
     )
 
 
@@ -209,14 +197,13 @@ def main():
         test(model, device, test_loader)
         scheduler.step()
 
-    torch.save(model.state_dict(), PATHS["model_compiled"])
+    torch.save(model.state_dict(), PATHS["model"])
 
 
 def export_to_onnx(model: Net):
     model.eval()
     x = 0.1 * torch.rand(1, *[1, 28, 28], requires_grad=True)
     model_path = os.path.join(PATHS["model_onnx"])
-    # https://colab.research.google.com/github/zkonduit/ezkl/blob/main/examples/notebooks/simple_demo_all_public.ipynb#scrollTo=82db373a
     torch.onnx.export(
         model,
         x,
@@ -335,8 +322,10 @@ def conv_b64_tensor(b64: str):
         ]
     )
 
-    input_tensor = preprocess(img)
-    return input_tensor
+    tensor = preprocess(img)
+    if tensor.dim() == 3:
+        tensor = tensor.unsqueeze(0)
+    return tensor
 
 
 def predict(model, tensor):
@@ -363,10 +352,15 @@ async def setup_ezkl():
 
 
 if __name__ == "__main__":
-    asyncio.run(setup_ezkl())
+    # asyncio.run(setup_ezkl())
     # main()
-    # b64 = file_to_b64("test2.png")
-    # custom_tensor = conv_b64_tensor(b64)
-    # print(custom_tensor.shape)
-    # res = predict(net, custom_tensor)
-    # print(res)
+    b64 = file_to_b64("test2.png")
+    custom_tensor = conv_b64_tensor(b64)
+    # img = custom_tensor.squeeze(0).squeeze(0)
+    # plt.imshow(img, cmap='gray')
+    # plt.axis('off')
+    # plt.show()
+    net = Net()
+    net.load_state_dict(torch.load(PATHS["model"]))
+    res = predict(net, custom_tensor)
+    print(res)

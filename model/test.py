@@ -1,7 +1,6 @@
 import os, sys, torch
-import matplotlib.pyplot as plt
 from main import Net, PATHS, predict
-from utils import local_img_to_b64, b64_to_tensor
+from utils import local_img_to_b64, b64_to_tensor, show_tensor
 
 
 IMGS_DIR = './test_imgs'
@@ -15,11 +14,12 @@ if __name__ == "__main__":
         sys.exit(1)
     
     net.load_state_dict(torch.load(PATHS["model"]))
-        
+
     for file in os.listdir(IMGS_DIR):
         if file.endswith(IMGS_EXT):
             b64 = local_img_to_b64(os.path.join(IMGS_DIR, file))
-            tensor = b64_to_tensor(b64)
+            tensor = b64_to_tensor(b64, True)
+            show_tensor(tensor)
             pred = predict(net, tensor)
             print(f'File: "{file}"'.ljust(24), f'Prediction: {pred}')
             

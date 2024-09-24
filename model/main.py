@@ -1,4 +1,4 @@
-import argparse, torch, ssl, base64, io, os, ezkl, json, asyncio
+import argparse, torch, ssl, base64, io, os, ezkl, json, asyncio, random
 from time import time
 from PIL import Image
 import torch.nn as nn
@@ -301,13 +301,9 @@ async def configure_ezkl(model_onnx_path: str = PATHS["model_onnx"]):
 
 
 def predict(model, tensor):
-    if tensor.dim() == 3:
-        tensor = tensor.unsqueeze(0)  # Add batch dimension if missing
-    device = next(model.parameters()).device
-    input_tensor = tensor.to(device)
     model.eval()
     with torch.no_grad():
-        output = model(input_tensor)
+        output = model(tensor)
         prediction = output.argmax(dim=1).item()
     return prediction
 

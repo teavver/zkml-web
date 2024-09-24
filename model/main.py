@@ -298,34 +298,6 @@ async def configure_ezkl(model_onnx_path: str = PATHS["model_onnx"]):
     print("ezkl setup complete")
 
 
-def file_to_b64(fname: str):
-    ext = fname.split(".")[-1]
-    prefix = f"data:image/{ext};base64,"
-    with open(fname, "rb") as f:
-        img = f.read()
-    return prefix + base64.b64encode(img).decode("utf-8")
-
-
-def conv_b64_tensor(b64: str):
-    if "," in b64:
-        b64 = b64.split(",", 1)[1]
-
-    data = base64.b64decode(b64)
-    img = Image.open(io.BytesIO(data))
-
-    preprocess = transforms.Compose(
-        [
-            transforms.Grayscale(),
-            transforms.Resize((28, 28)),
-            transforms.ToTensor(),
-            transforms.Lambda(lambda x: 1 - x),  # invert colors
-        ]
-    )
-
-    tensor = preprocess(img)
-    if tensor.dim() == 3:
-        tensor = tensor.unsqueeze(0)
-    return tensor
 
 
 def predict(model, tensor):
@@ -352,15 +324,16 @@ async def setup_ezkl():
 
 
 if __name__ == "__main__":
+    print('')
     # asyncio.run(setup_ezkl())
     # main()
-    b64 = file_to_b64("test2.png")
-    custom_tensor = conv_b64_tensor(b64)
+    # b64 = file_to_b64("test2.png")
+    # custom_tensor = conv_b64_tensor(b64)
     # img = custom_tensor.squeeze(0).squeeze(0)
     # plt.imshow(img, cmap='gray')
     # plt.axis('off')
     # plt.show()
-    net = Net()
-    net.load_state_dict(torch.load(PATHS["model"]))
-    res = predict(net, custom_tensor)
-    print(res)
+    # net = Net()
+    # net.load_state_dict(torch.load(PATHS["model"]))
+    # res = predict(net, custom_tensor)
+    # print(res)

@@ -296,7 +296,31 @@ async def configure_ezkl(model_onnx_path: str = PATHS["model_onnx"]):
     assert os.path.isfile(PATHS["pk"])
     assert os.path.isfile(PATHS["settings"])
     print("ezkl setup complete")
+    
+    
+async def ezkl_sample_proof():
+    # create a sample proof and verify it
+    proof_path = os.path.join('test.pf')
+    res = ezkl.prove(
+            PATHS['witness'],
+            PATHS['model_compiled'],
+            PATHS['pk'],
+            proof_path,
+            "single",
+            PATHS['srs']
+        )
 
+    assert os.path.isfile(proof_path)
+    
+    res = ezkl.verify(
+        proof_path,
+        PATHS['settings'],
+        PATHS['vk'],
+        PATHS['srs']
+    )
+
+    assert res == True
+    print("all good")
 
 
 
@@ -316,12 +340,13 @@ async def setup_ezkl():
     export_to_onnx(net)
     await configure_ezkl()
     end = time()
-    print(f"Done in {int(end - start)}")
+    print(f"Done in {int(end - start)}s")
 
 
 if __name__ == "__main__":
     print('')
     # asyncio.run(setup_ezkl())
+    asyncio.run(ezkl_sample_proof())
     # main()
     # b64 = file_to_b64("test2.png")
     # custom_tensor = conv_b64_tensor(b64)

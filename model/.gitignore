@@ -10,5 +10,7 @@ witness.json
 *.compiled
 srs
 *calibration*
+*.pf
+
 
 _*

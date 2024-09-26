@@ -1,7 +1,14 @@
-import base64, io
+import base64, io, torch
 import matplotlib.pyplot as plt
 from PIL import Image, ImageOps
 from torchvision import transforms
+from model.model import Net
+from ezkl.ezkl import PATHS
+
+def load_net():
+    net = Net()
+    net.load_state_dict(torch.load(PATHS["model"]))
+    return net
 
 def parse_b64(b64data: str):
     try:

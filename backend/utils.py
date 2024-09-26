@@ -3,7 +3,22 @@ import matplotlib.pyplot as plt
 from PIL import Image, ImageOps
 from torchvision import transforms
 from model.model import Net
-from ezkl.ezkl import PATHS
+
+
+PATHS = {
+    "model": "mnist.pt",
+    "model_compiled": "mnist.compiled",
+    "model_onnx": "network.onnx",
+    # EZKL
+    "input": "input.json",
+    "settings": "settings.json",
+    "pk": "prover_key.pk",
+    "vk": "verifier_key.vk",
+    "calibration": "calibration.json",
+    "witness": "witness.json",
+    "srs": "srs",
+}
+
 
 def load_net():
     net = Net()
@@ -51,6 +66,7 @@ def b64_to_tensor(b64: str, blur=False, invert=True):
     if tensor.dim() == 3:
         tensor = tensor.unsqueeze(0)
     return tensor
+
 
 def show_tensor(tensor, title=None):
     # display [1, 1, 28, 28] input tensor

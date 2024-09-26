@@ -1,28 +1,16 @@
-import argparse, torch, os, ezkl, json
+import argparse, torch, os, ezkl, json, asyncio
 from time import time
 import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 import torchvision.transforms as transforms
+from .ezkl_utils import ezkl_input_to_witness, tensor_to_ezkl_input
 from model.model import Net
+from utils import PATHS
 
 # Most of the code here comes from this example notebook:
 # https://colab.research.google.com/github/zkonduit/ezkl/blob/main/examples/notebooks/simple_demo_public_network_output
-
-PATHS = {
-    "model": "mnist.pt",
-    "model_compiled": "mnist.compiled",
-    "model_onnx": "network.onnx",
-    # EZKL
-    "input": "input.json",
-    "settings": "settings.json",
-    "pk": "prover_key.pk",
-    "vk": "verifier_key.vk",
-    "calibration": "calibration.json",
-    "witness": "witness.json",
-    "srs": "srs",
-}
 
 
 def train(args, model, device, train_loader, optimizer, epoch):
@@ -169,6 +157,9 @@ def main():
         scheduler.step()
 
     torch.save(model.state_dict(), PATHS["model"])
+    
+    
+# EZKL
 
 
 def export_to_onnx(model: Net):
@@ -190,9 +181,9 @@ def export_to_onnx(model: Net):
         },
     )
 
-    data_array = ((x).detach().numpy()).reshape([-1]).tolist()
-    data = dict(input_data=[data_array])
-    json.dump(data, open(PATHS["input"], "w"))
+    # data = tensor_to_ezkl_input(x)
+    # json.dump(data, open(PATHS["input"], "w"))
+    tensor_to_ezkl_input(x)
 
 
 async def ezkl_clear_config():
@@ -241,16 +232,12 @@ async def ezkl_configure(model_onnx_path: str = PATHS["model_onnx"]):
     assert res == True
     print("ezkl circuit OK")
 
-    if not os.path.isfile(PATHS["srs"]):
-        res = await ezkl.get_srs(PATHS["settings"], None, PATHS["srs"])
-        assert res == True
-        assert os.path.isfile(PATHS["srs"])
+    res = await ezkl.get_srs(PATHS["settings"], None, PATHS["srs"])
+    assert res == True
+    assert os.path.isfile(PATHS["srs"])
 
-    if not os.path.isfile(PATHS["witness"]):
-        res = await ezkl.gen_witness(
-            PATHS["input"], PATHS["model_compiled"], PATHS["witness"]
-        )
-        assert os.path.isfile(PATHS["witness"])
+    res = await ezkl_input_to_witness()
+    assert os.path.isfile(PATHS["witness"])
 
     print("running ezkl setup...")
 
@@ -267,7 +254,7 @@ async def ezkl_configure(model_onnx_path: str = PATHS["model_onnx"]):
     assert os.path.isfile(PATHS["settings"])
     print("ezkl setup complete")
     
-    
+
 async def ezkl_run_sample():
     # create a sample proof and verify it
     proof_path = os.path.join('test.pf')
@@ -302,3 +289,7 @@ async def ezkl_full_setup():
     await ezkl_configure()
     end = time()
     print(f"Done in {int(end - start)}s")
+    
+    
+if __name__ == "__main__":
+    asyncio.run(ezkl_full_setup())

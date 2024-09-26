@@ -53,6 +53,14 @@ class Net(nn.Module):
         # logits => 32x10
         logits = self.d2(x)
         return logits
+    
+def predict(model, tensor):
+    model.eval()
+    with torch.no_grad():
+        output = model(tensor)
+        prediction = output.argmax(dim=1).item()
+    return prediction
+
 
 def train(args, model, device, train_loader, optimizer, epoch):
     model.train()
@@ -224,7 +232,7 @@ def export_to_onnx(model: Net):
     json.dump(data, open(PATHS["input"], "w"))
 
 
-async def clear_ezkl_conf():
+async def ezkl_clear_config():
     for path in PATHS:
         if not "model" in path:
             if "calibration" in PATHS[path]:
@@ -234,7 +242,7 @@ async def clear_ezkl_conf():
                 print(f"File {PATHS[path]} removed")
 
 
-async def configure_ezkl(model_onnx_path: str = PATHS["model_onnx"]):
+async def ezkl_configure(model_onnx_path: str = PATHS["model_onnx"]):
     # first make sure model was exported to onnx and input.json is present
     assert os.path.isfile(PATHS["model_onnx"]), "No .onnx model found"
     assert os.path.isfile(
@@ -250,7 +258,6 @@ async def configure_ezkl(model_onnx_path: str = PATHS["model_onnx"]):
     assert res == True  # Make sure we good before calibrating
     print("ezkl settings OK")
 
-    # Skip this part if already exists - expensive
     if not os.path.isfile(PATHS["calibration"]):
         data_array = (
             (torch.rand(10, *[1, 28, 28], requires_grad=True).detach().numpy())
@@ -298,7 +305,7 @@ async def configure_ezkl(model_onnx_path: str = PATHS["model_onnx"]):
     print("ezkl setup complete")
     
     
-async def ezkl_sample_proof():
+async def ezkl_run_sample():
     # create a sample proof and verify it
     proof_path = os.path.join('test.pf')
     res = ezkl.prove(
@@ -323,38 +330,19 @@ async def ezkl_sample_proof():
     print("all good")
 
 
-
-def predict(model, tensor):
-    model.eval()
-    with torch.no_grad():
-        output = model(tensor)
-        prediction = output.argmax(dim=1).item()
-    return prediction
-
-
-async def setup_ezkl():
+async def ezkl_full_setup():
     start = time()
     net = Net()
     net.load_state_dict(torch.load(PATHS["model"]))
-    await clear_ezkl_conf()
+    await ezkl_clear_config()
     export_to_onnx(net)
-    await configure_ezkl()
+    await ezkl_configure()
     end = time()
     print(f"Done in {int(end - start)}s")
 
 
 if __name__ == "__main__":
     print('')
-    # asyncio.run(setup_ezkl())
-    asyncio.run(ezkl_sample_proof())
-    # main()
-    # b64 = file_to_b64("test2.png")
-    # custom_tensor = conv_b64_tensor(b64)
-    # img = custom_tensor.squeeze(0).squeeze(0)
-    # plt.imshow(img, cmap='gray')
-    # plt.axis('off')
-    # plt.show()
-    # net = Net()
-    # net.load_state_dict(torch.load(PATHS["model"]))
-    # res = predict(net, custom_tensor)
-    # print(res)
+    # asyncio.run(ezkl_full_setup())
+    # asyncio.run(ezkl_run_sample())
+

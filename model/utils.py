@@ -3,6 +3,18 @@ import matplotlib.pyplot as plt
 from PIL import Image, ImageOps
 from torchvision import transforms
 
+def parse_b64(b64data: str):
+    try:
+        B64_PREFIX = 'base64,'
+        b64data = ''.join(b64data.strip().split())
+        if B64_PREFIX in b64data:
+            b64data = b64data.split(B64_PREFIX)[-1]
+        base64.b64decode(b64data, validate=True)
+        return b64data
+    except Exception as e:
+        print(e)
+        return None
+
 def local_img_to_b64(fname: str):
     try:
         ext = fname.split(".")[-1]

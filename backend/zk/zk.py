@@ -5,7 +5,12 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 import torchvision.transforms as transforms
-from .ezkl_utils import ezkl_input_to_witness, tensor_to_ezkl_input
+from .ezkl_utils import (
+    ezkl_input_to_witness,
+    tensor_to_ezkl_input,
+    ezkl_prove,
+    ezkl_verify,
+)
 from model.model import Net
 from utils import PATHS
 
@@ -29,7 +34,8 @@ def train(args, model, device, train_loader, optimizer, epoch):
             )
             if args.dry_run:
                 break
-            
+
+
 def test(model, device, test_loader):
     model.eval()
     test_loss = 0.0
@@ -157,8 +163,8 @@ def main():
         scheduler.step()
 
     torch.save(model.state_dict(), PATHS["model"])
-    
-    
+
+
 # EZKL
 
 
@@ -180,9 +186,6 @@ def export_to_onnx(model: Net):
             "output": {0: "batch_size"},
         },
     )
-
-    # data = tensor_to_ezkl_input(x)
-    # json.dump(data, open(PATHS["input"], "w"))
     tensor_to_ezkl_input(x)
 
 
@@ -194,6 +197,33 @@ async def ezkl_clear_config():
             if os.path.isfile(PATHS[path]):
                 os.remove(PATHS[path])
                 print(f"File {PATHS[path]} removed")
+
+
+def ezkl_prove(proof_path: str = PATHS["proof"]) -> bool:
+    if os.path.isfile(proof_path):
+        os.remove(proof_path)
+    ezkl.prove(
+        PATHS["witness"],
+        PATHS["model_compiled"],
+        PATHS["pk"],
+        proof_path,
+        "single",
+        PATHS["srs"],
+    )
+    if not os.path.isfile(proof_path):
+        print("ezkl failed to prove this computation")
+        # todo: debug info about record
+        return False
+    return True
+
+
+def ezkl_verify(proof_path: str = PATHS["proof"]):
+    res = ezkl.verify(proof_path, PATHS["settings"], PATHS["vk"], PATHS["srs"])
+    if res != True:
+        print("ezkl failed to verify this computation")
+        # todo: debug info about record
+        return False
+    return res
 
 
 async def ezkl_configure(model_onnx_path: str = PATHS["model_onnx"]):
@@ -253,43 +283,19 @@ async def ezkl_configure(model_onnx_path: str = PATHS["model_onnx"]):
     assert os.path.isfile(PATHS["pk"])
     assert os.path.isfile(PATHS["settings"])
     print("ezkl setup complete")
-    
-
-async def ezkl_run_sample():
-    # create a sample proof and verify it
-    proof_path = os.path.join('test.pf')
-    res = ezkl.prove(
-            PATHS['witness'],
-            PATHS['model_compiled'],
-            PATHS['pk'],
-            proof_path,
-            "single",
-            PATHS['srs']
-        )
-
-    assert os.path.isfile(proof_path)
-    
-    res = ezkl.verify(
-        proof_path,
-        PATHS['settings'],
-        PATHS['vk'],
-        PATHS['srs']
-    )
-
-    assert res == True
-    print("all good")
 
 
-async def ezkl_full_setup():
+async def ezkl_full_setup(cleanup: bool = True):
     start = time()
     net = Net()
     net.load_state_dict(torch.load(PATHS["model"]))
-    await ezkl_clear_config()
+    if cleanup:
+        await ezkl_clear_config()
     export_to_onnx(net)
     await ezkl_configure()
     end = time()
     print(f"Done in {int(end - start)}s")
-    
-    
+
+
 if __name__ == "__main__":
     asyncio.run(ezkl_full_setup())

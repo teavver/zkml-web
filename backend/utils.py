@@ -9,13 +9,17 @@ PATHS = {
     "model": "mnist.pt",
     "model_compiled": "mnist.compiled",
     "model_onnx": "network.onnx",
+    
     # EZKL
+    ## temp
     "input": "input.json",
+    "witness": "witness.json",
+    "proof": "proof.pf",
+    ## one-time setup
     "settings": "settings.json",
     "pk": "prover_key.pk",
     "vk": "verifier_key.vk",
     "calibration": "calibration.json",
-    "witness": "witness.json",
     "srs": "srs",
 }
 

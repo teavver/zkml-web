@@ -8,8 +8,6 @@ import torchvision.transforms as transforms
 from .ezkl_utils import (
     ezkl_input_to_witness,
     tensor_to_ezkl_input,
-    ezkl_prove,
-    ezkl_verify,
 )
 from model.model import Net
 from utils import PATHS

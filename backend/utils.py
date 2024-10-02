@@ -1,8 +1,11 @@
-import base64, io, torch
+import base64, io, torch, os
 import matplotlib.pyplot as plt
 from PIL import Image, ImageOps
 from torchvision import transforms
 from model.model import Net
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
+from pymongo.collection import Collection
 
 
 PATHS = {
@@ -22,6 +25,28 @@ PATHS = {
     "calibration": "calibration.json",
     "srs": "srs",
 }
+
+
+def read_file(fname: str) -> str:
+    try:
+        with open(fname) as f: c = f.read()
+        return c
+    except Exception as e:
+        print(f'failed to read file {fname}, err: {e}')
+        return
+
+
+def create_db_client() -> Collection:
+    uri = f"mongodb+srv://{os.getenv('DB_USER')}:{os.getenv('DB_PASS')}@cluster0.e48xh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+    client = MongoClient(uri, server_api=ServerApi('1'))
+    collection = None
+    try:
+        client.admin.command('ping')
+        db = client.get_database("zkml_web")
+        collection = db["records"]
+    except Exception as e:
+        print(e)
+    return collection
 
 
 def load_net():

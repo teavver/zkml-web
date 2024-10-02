@@ -3,6 +3,8 @@ venv
 *.bak
 __pycache__
 data
+.env
 
 # 
 *.log
+*.tldr

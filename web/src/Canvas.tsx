@@ -17,17 +17,28 @@ const Canvas = () => {
     setStatus('ready')
   }, [canvasRef])
 
+  const handlePredict = () => {
+    const canvas = document.getElementById("canvas") as HTMLCanvasElement
+    const img = new Image()
+    img.src = canvas.toDataURL("image/jpg")
+    // console.log(img.src)
+    // todo: /preidct post
+  }
+
+  const handleDownload = () => {
+    const img = (document.getElementById("canvas") as HTMLCanvasElement).toDataURL("image/jpg")
+    const link = document.createElement('a')
+    link.download = 'zkml_web_drawing.jpg'
+    link.href = img
+    link.click()
+    document.body.removeChild(link)
+  }
+
   const handleMouseMove = (evt: MouseEvent) => {
     const ctx = canvasRef.current?.getContext("2d") as CanvasRenderingContext2D
     const { x, y } = mousePosToBlock(convertMousePos(evt))
 
-    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
-
-    // draw existing state
-    state.current.forEach(point => {
-      const [px, py] = point.split(',').map(Number)
-      drawBlock(ctx, { x: px, y: py })
-    })
+    drawBaseCanvasFrame()
 
     if (evt.buttons === 1 && x >= 0 && x < CANVAS_SIZE && y >= 0 && y < CANVAS_SIZE) {
       state.current.add(`${x},${y}`)
@@ -35,6 +46,19 @@ const Canvas = () => {
     } else {
       drawBlock(ctx, { x, y }, 'stroke')
     }
+  }
+
+  const drawBaseCanvasFrame = () => {
+    const ctx = canvasRef.current?.getContext("2d") as CanvasRenderingContext2D
+    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
+    drawStateBlocks(ctx)
+  }
+
+  const drawStateBlocks = (ctx: CanvasRenderingContext2D) => {
+    state.current.forEach(point => {
+      const [px, py] = point.split(',').map(Number)
+      drawBlock(ctx, { x: px, y: py })
+    })
   }
 
   const convertMousePos = (evt: MouseEvent): Point => {
@@ -57,9 +81,16 @@ const Canvas = () => {
     <div>
       {status === 'ready'
         ?
-        <canvas ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} className="outline outline-1"
-          onMouseMove={(e) => handleMouseMove(e as unknown as MouseEvent)}
-        />
+        <div className="flex flex-col">
+          <canvas id="canvas" ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} className="outline outline-1"
+            onMouseMove={(e) => handleMouseMove(e as unknown as MouseEvent)}
+            onMouseLeave={() => drawBaseCanvasFrame()}
+          />
+          <div>
+            <button onClick={handlePredict}>Predict!</button>
+            <button onClick={handleDownload}>Download</button>
+          </div>
+        </div>
         : <p>...</p>
       }
     </div>

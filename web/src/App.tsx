@@ -3,10 +3,10 @@ import Canvas from "./Canvas"
 function App() {
 
   return (
-    <div className="flex flex-col gap-3 w-screen h-screen m-0 p-0 px-[30%]">
-      <p>ZKML</p>
-      <br />
-      <div>
+    <div className="flex items-center flex-col gap-3 w-full h-full m-0 p-0">
+        <p>ZKML web demo</p>
+        <br />
+      <div className="flex justify-center items-center">
         <Canvas />
       </div>
     </div>

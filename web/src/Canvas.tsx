@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { Point, Status } from "./types"
+import { Point, Status, DrawBlockType } from "./types"
 
 const BLOCK_SIZE = 16
 const CANVAS_SIZE = 28
@@ -10,12 +10,7 @@ const Canvas = () => {
 
   const [status, setStatus] = useState<Status>('loading')
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
-
-  useEffect(() => {
-    if (!canvasRef.current) return
-    const ctx = canvasRef.current.getContext("2d")
-    ctx?.strokeRect(200, 200, 40, 50)
-  }, [canvasRef])
+  const state = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     if (!canvasRef) return
@@ -23,11 +18,23 @@ const Canvas = () => {
   }, [canvasRef])
 
   const handleMouseMove = (evt: MouseEvent) => {
-    if (!canvasRef.current) return
-    const ctx = canvasRef.current.getContext("2d")
-    if (!ctx) return
+    const ctx = canvasRef.current?.getContext("2d") as CanvasRenderingContext2D
+    const { x, y } = mousePosToBlock(convertMousePos(evt))
+
     ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
-    drawBlock(ctx, mousePosToBlock(convertMousePos(evt)))
+
+    // draw existing state
+    state.current.forEach(point => {
+      const [px, py] = point.split(',').map(Number)
+      drawBlock(ctx, { x: px, y: py })
+    })
+
+    if (evt.buttons === 1 && x >= 0 && x < CANVAS_SIZE && y >= 0 && y < CANVAS_SIZE) {
+      state.current.add(`${x},${y}`)
+      drawBlock(ctx, { x, y })
+    } else {
+      drawBlock(ctx, { x, y }, 'stroke')
+    }
   }
 
   const convertMousePos = (evt: MouseEvent): Point => {
@@ -37,21 +44,22 @@ const Canvas = () => {
   }
 
   const mousePosToBlock = (pos: Point): Point => {
-    const round = (n: number) => n < BLOCK_SIZE ? 0 : (Math.round(n / BLOCK_SIZE) * BLOCK_SIZE) / BLOCK_SIZE
+    const round = (n: number) => Math.round((n + BLOCK_SIZE / 2) / BLOCK_SIZE) - 1
     return { x: round(pos.x), y: round(pos.y) }
   }
 
-  const drawBlock = (ctx: CanvasRenderingContext2D, pos: Point) => {
-    ctx.strokeRect(pos.x * BLOCK_SIZE, pos.y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE)
+  const drawBlock = (ctx: CanvasRenderingContext2D, pos: Point, drawType: DrawBlockType = 'fill') => {
+    if (drawType === 'stroke') return ctx.strokeRect(pos.x * BLOCK_SIZE, pos.y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE)
+    return ctx.fillRect(pos.x * BLOCK_SIZE, pos.y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE)
   }
 
   return (
     <div>
       {status === 'ready'
         ?
-          <canvas ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} className="border-2"
-            onMouseMove={(e) => handleMouseMove(e as unknown as MouseEvent)}
-          />
+        <canvas ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} className="outline outline-1"
+          onMouseMove={(e) => handleMouseMove(e as unknown as MouseEvent)}
+        />
         : <p>...</p>
       }
     </div>

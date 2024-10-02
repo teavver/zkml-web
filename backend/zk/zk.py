@@ -216,12 +216,16 @@ def ezkl_prove(proof_path: str = PATHS["proof"]) -> bool:
 
 
 def ezkl_verify(proof_path: str = PATHS["proof"]):
-    res = ezkl.verify(proof_path, PATHS["settings"], PATHS["vk"], PATHS["srs"])
-    if res != True:
-        print("ezkl failed to verify this computation")
-        # todo: debug info about record
+    try:
+        res = ezkl.verify(proof_path, PATHS["settings"], PATHS["vk"], PATHS["srs"])
+        if res != True:
+            print("ezkl failed to verify this computation")
+            # todo: debug info about record
+            return False
+        return True
+    except Exception as e:
+        print(f'ezkl_verify exc: {e}')
         return False
-    return res
 
 
 async def ezkl_configure(model_onnx_path: str = PATHS["model_onnx"]):

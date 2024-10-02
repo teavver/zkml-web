@@ -1,10 +1,12 @@
+import os
 from time import time
-from flask import Flask, request, current_app, jsonify
-from utils import parse_b64, b64_to_tensor, load_net, read_file
+from flask import Flask, request, current_app, send_file
+from werkzeug.utils import secure_filename
+from utils import parse_b64, b64_to_tensor, load_net, read_file, write_file
 from zk.ezkl_utils import tensor_to_ezkl_input, ezkl_input_to_witness
-from zk.zk import ezkl_prove
-from utils import create_db_client
-from dataclasses import dataclass, asdict
+from zk.zk import ezkl_prove, ezkl_verify
+from utils import create_db_client, PATHS
+from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class PredictionResult:
@@ -22,6 +24,7 @@ class PredictionRecord(PredictionResult):
 def create_app():
     
     app = Flask(__name__)
+    app.config['MAX_CONTENT_LENGTH'] = 512000 # 500KB limit
     
     with app.app_context():
         current_app.net = load_net()
@@ -29,8 +32,8 @@ def create_app():
         print('model init ok')
     
     @app.route('/', methods=['GET'])
-    def hello_world():
-        return '<p>Hello, World!</p>'
+    def root():
+        return 'ZKML-web api', 200
 
     @app.route('/predict', methods=['POST'])
     async def predict():
@@ -39,7 +42,7 @@ def create_app():
         body_input_key = 'input'
         input_img = request_data.get(body_input_key, None)
         if input_img is None or not isinstance(input_img, str):
-            return f'invalid body data, expected key: "{body_input_key}"', 400
+            return f'invalid body data, expected key: "{body_input_key}" type: str', 400
         try:
             input_img.encode('utf-8')
         except UnicodeEncodeError:
@@ -76,10 +79,53 @@ def create_app():
         
         return res, 200
     
-    @app.route('/proof', methods=['GET'])
+    @app.route('/get_proof', methods=['GET'])
     async def get_proof():
-        proof_id = request.args.get('proof_id', default=None, type=str)
-        print(proof_id)
-        return 'ok', 200
+        proof_req_query = 'id'
+        req_id = request.args.get(proof_req_query, default=None, type=int)
+        if req_id is None or not isinstance(req_id, int):
+            return f'invalid body data, expected key: "{proof_req_query}" type: int', 400
+        
+        document = current_app.db.find_one({'id': req_id})
+        if not document:
+            return f'no record with id={req_id}', 404
+
+        proof_data = document.get('proof', 'no proof available')
+        if os.path.isfile(PATHS["proof"]):
+            os.remove(PATHS["proof"])
+            
+        write_file(proof_data, PATHS["proof"])
+        return send_file(os.path.abspath(PATHS["proof"]), as_attachment=True)
+        
+        
+    @app.route('/verify', methods=['POST'])
+    async def verify_proof():
+        
+        if 'file' not in request.files:
+            return 'required "file" in req', 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return 'no selected file', 400
+        
+        fname = secure_filename(file.filename)
+        if fname[len(fname)-3:] != '.pf':
+            return 'invalid file extension', 400
+        
+        if os.path.isfile(PATHS["proof"]):
+            os.remove(PATHS["proof"])
+            
+        try:
+            proof_data = file.read().decode("utf-8")
+            write_file(proof_data, PATHS["proof"])
+        except UnicodeDecodeError as e:
+            print(f'/verify file encoding err: {e}')
+            return 'invalid file encoding', 400
+            
+        res = ezkl_verify(PATHS["proof"])
+        if res == False:
+            return 'NOT OK', 200
+        
+        return 'OK', 200
 
     return app

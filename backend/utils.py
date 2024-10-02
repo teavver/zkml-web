@@ -34,6 +34,15 @@ def read_file(fname: str) -> str:
     except Exception as e:
         print(f'failed to read file {fname}, err: {e}')
         return
+    
+
+def write_file(content: str, fname: str) -> bool:
+    try:
+        with open(fname, "w") as f:
+            f.write(content)
+    except Exception as e:
+        print(f'failed to write file {fname}, err: {e}')
+        return
 
 
 def create_db_client() -> Collection:

@@ -20,7 +20,7 @@ async def test_model():
     for file in os.listdir(IMGS_DIR):
         if file.endswith(IMGS_EXT):
             b64 = local_img_to_b64(os.path.join(IMGS_DIR, file))
-            tensor = b64_to_tensor(b64, True)
+            tensor = b64_to_tensor(b64)
             # show_tensor(tensor)
             pred = net.predict(tensor)
             print(f'File: "{file}"'.ljust(24), f"Prediction: {pred}")

@@ -1,17 +1,18 @@
 import os
+from typing import List
 from time import time
-from flask import Flask, request, current_app, send_file
+from flask import Flask, request, current_app, send_file, jsonify
+from flask_cors import CORS
 from werkzeug.utils import secure_filename
-from utils import parse_b64, b64_to_tensor, load_net, read_file, write_file
+from utils import parse_b64, b64_to_tensor, load_net, read_file, write_file, show_tensor
 from zk.ezkl_utils import tensor_to_ezkl_input, ezkl_input_to_witness
 from zk.zk import ezkl_prove, ezkl_verify
 from utils import create_db_client, PATHS
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 
 
 @dataclass(frozen=True)
 class PredictionResult:
-    input: str  # b64
     prediction_res: int
     timestamp: int
     id: int
@@ -19,12 +20,14 @@ class PredictionResult:
 
 @dataclass(frozen=True)
 class PredictionRecord(PredictionResult):
+    input: str  # b64
     proof: str
 
 
 def create_app():
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = 512000  # 500KB limit
+    CORS(app)
 
     with app.app_context():
         current_app.net = load_net()
@@ -35,46 +38,28 @@ def create_app():
     def root():
         return "ZKML-web api", 200
 
-    @app.route("/predict", methods=["POST"])
-    async def predict():
-        ts = int(time())
-        request_data = request.get_json()
-        body_input_key = "input"
-        input_img = request_data.get(body_input_key, None)
-        if input_img is None or not isinstance(input_img, str):
-            return f'invalid body data, expected key: "{body_input_key}" type: str', 400
-        try:
-            input_img.encode("utf-8")
-        except UnicodeEncodeError:
-            return "utf8 only bro", 400
-        parsed_b64 = parse_b64(input_img)
-        if parsed_b64 is None:
-            return "invalid b64 data", 400
-        tensor = b64_to_tensor(parsed_b64)
-        pred_res = current_app.net.predict(tensor)
+    @app.route("/get_records", methods=["GET"])
+    async def get_records():
+        limit = 10
+        start_query = "start_from"
+        start = request.args.get(start_query, default=None, type=int)
+        if start is not None:
+            if start is not isinstance(start, int):
+                return (
+                    f'invalid body data, expected key: "{start_query}" type: int',
+                    400,
+                )
+            query = {"id": {"$gte": start}}
 
-        tensor_to_ezkl_input(tensor)
-        await ezkl_input_to_witness()
+        query = {}
+        cursor = current_app.db.find(
+            query, projection={"_id": 0, "proof": 0}, sort=[("id", -1)]
+        ).limit(limit)
 
-        id = current_app.db.count_documents({}) + 1
+        records = [PredictionRecord(**doc, proof="") for doc in cursor]
+        return {"records": [asdict(record) for record in records]}, 200
 
-        proof_path = f"proof.pf"
-        p = ezkl_prove(proof_path)
-        if p == False:
-            return "internal err (proof)", 500
-
-        res = PredictionResult(parsed_b64, pred_res, ts, id).__dict__
-
-        proof = read_file(proof_path)
-        if proof == None:
-            return "proof file read err", 500
-
-        record = PredictionRecord(**res, proof=proof).__dict__
-        db_res = current_app.db.insert_one(record)
-        if db_res.acknowledged != True:
-            return "internal err (db insert)", 500
-
-        return res, 200
+    # todo: get VK endpoint
 
     @app.route("/get_proof", methods=["GET"])
     async def get_proof():
@@ -96,6 +81,45 @@ def create_app():
 
         write_file(proof_data, PATHS["proof"])
         return send_file(os.path.abspath(PATHS["proof"]), as_attachment=True)
+
+    @app.route("/predict", methods=["POST"])
+    async def predict():
+        ts = int(time())
+        request_data = request.get_json()
+        body_input_key = "input"
+        input_img = request_data.get(body_input_key, None)
+        if input_img is None or not isinstance(input_img, str):
+            return f'invalid body data, expected key: "{body_input_key}" type: str', 400
+        try:
+            input_img.encode("utf-8")
+        except UnicodeEncodeError:
+            return "utf8 only bro", 400
+        parsed_b64 = parse_b64(input_img)
+        if parsed_b64 is None:
+            return "invalid b64 data", 400
+        tensor = b64_to_tensor(parsed_b64)
+        pred_res = current_app.net.predict(tensor)
+        tensor_to_ezkl_input(tensor)
+        await ezkl_input_to_witness()
+
+        next_id = current_app.db.count_documents({}) + 1
+        proof_path = f"proof.pf"
+        p = ezkl_prove(proof_path)
+        if p == False:
+            return "internal err (proof)", 500
+
+        res = asdict(PredictionResult(pred_res, ts, next_id))
+
+        proof = read_file(proof_path)
+        if proof == None:
+            return "proof file read err", 500
+
+        record = asdict(PredictionRecord(**res, input=parsed_b64, proof=proof))
+        db_res = current_app.db.insert_one(record)
+        if db_res.acknowledged != True:
+            return "internal err (db insert)", 500
+
+        return jsonify(res)
 
     @app.route("/verify", methods=["POST"])
     async def verify_proof():

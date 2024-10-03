@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
-import { Point, Status, DrawBlockType } from "./types"
+import { Point, Status, DrawBlockType, PredictionRecord } from "./types"
+import { API_ENDPOINTS, API_URL } from "./utils"
 
 const BLOCK_SIZE = 16
 const CANVAS_SIZE = 28
@@ -9,6 +10,8 @@ const CANVAS_HEIGHT = CANVAS_SIZE * BLOCK_SIZE
 const Canvas = () => {
 
   const [status, setStatus] = useState<Status>('loading')
+  const [res, setRes] = useState<PredictionRecord>()
+
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const state = useRef<Set<string>>(new Set())
 
@@ -17,12 +20,20 @@ const Canvas = () => {
     setStatus('ready')
   }, [canvasRef])
 
-  const handlePredict = () => {
+  const handlePredict = async () => {
     const canvas = document.getElementById("canvas") as HTMLCanvasElement
     const img = new Image()
     img.src = canvas.toDataURL("image/jpg")
-    // console.log(img.src)
-    // todo: /preidct post
+    const url = API_URL + API_ENDPOINTS.PREDICT
+    const data = await fetch(url, {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ input: img.src })
+    })
+    const res = await data.json()
+    setRes(res as PredictionRecord)
   }
 
   const handleDownload = () => {
@@ -50,7 +61,10 @@ const Canvas = () => {
 
   const drawBaseCanvasFrame = () => {
     const ctx = canvasRef.current?.getContext("2d") as CanvasRenderingContext2D
-    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
+    // ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
+    ctx.fillStyle = 'white'
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
+    ctx.fillStyle = 'black'
     drawStateBlocks(ctx)
   }
 
@@ -90,6 +104,9 @@ const Canvas = () => {
             <button onClick={handlePredict}>Predict!</button>
             <button onClick={handleDownload}>Download</button>
           </div>
+          {res &&
+            <p className="mt-2">{JSON.stringify(res, null, 2)}</p>
+          }
         </div>
         : <p>...</p>
       }

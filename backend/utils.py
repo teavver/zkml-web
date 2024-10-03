@@ -92,7 +92,7 @@ def b64_to_tensor(b64: str, blur=False, invert=True):
         b64 = b64.split(",", 1)[1]
     data = base64.b64decode(b64)
     img = Image.open(io.BytesIO(data)).convert("RGB")
-    if invert:
+    if invert: 
         img = ImageOps.invert(img)
     preprocess = transforms.Compose(
         [

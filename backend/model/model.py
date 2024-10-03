@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch
 
+
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
@@ -20,14 +21,14 @@ class Net(nn.Module):
         x = self.conv2(x)
         x = self.relu(x)
         # flatten => 32 x (32*26*26)
-        x = x.flatten(start_dim = 1)
+        x = x.flatten(start_dim=1)
         # 32 x (32*26*26) => 32x128
         x = self.d1(x)
         x = self.relu(x)
         # logits => 32x10
         logits = self.d2(x)
         return logits
-    
+
     def predict(self, tensor):
         self.eval()
         with torch.no_grad():

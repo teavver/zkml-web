@@ -17,7 +17,7 @@ async def ezkl_input_to_witness(input_path: str = PATHS["input"]):
     except Exception as e:
         print(e)
         return None
-    
+
 
 def tensor_to_ezkl_input(tensor: Tensor, dest_path: str = PATHS["input"]):
     if tensor.dim() != 4:

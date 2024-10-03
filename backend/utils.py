@@ -12,7 +12,6 @@ PATHS = {
     "model": "mnist.pt",
     "model_compiled": "mnist.compiled",
     "model_onnx": "network.onnx",
-    
     # EZKL
     ## temp
     "input": "input.json",
@@ -27,30 +26,30 @@ PATHS = {
 }
 
 
-def read_file(fname: str) -> str:
+def read_file(fname: str) -> str | None:
     try:
-        with open(fname) as f: c = f.read()
+        with open(fname) as f:
+            c = f.read()
         return c
     except Exception as e:
-        print(f'failed to read file {fname}, err: {e}')
-        return
-    
+        print(f"failed to read file {fname}, err: {e}")
+        return None
 
-def write_file(content: str, fname: str) -> bool:
+
+def write_file(content: str, fname: str):
     try:
         with open(fname, "w") as f:
             f.write(content)
     except Exception as e:
-        print(f'failed to write file {fname}, err: {e}')
-        return
+        print(f"failed to write file {fname}, err: {e}")
 
 
 def create_db_client() -> Collection:
     uri = f"mongodb+srv://{os.getenv('DB_USER')}:{os.getenv('DB_PASS')}@cluster0.e48xh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-    client = MongoClient(uri, server_api=ServerApi('1'))
+    client = MongoClient(uri, server_api=ServerApi("1"))
     collection = None
     try:
-        client.admin.command('ping')
+        client.admin.command("ping")
         db = client.get_database("zkml_web")
         collection = db["records"]
     except Exception as e:
@@ -63,10 +62,11 @@ def load_net():
     net.load_state_dict(torch.load(PATHS["model"]))
     return net
 
+
 def parse_b64(b64data: str):
     try:
-        B64_PREFIX = 'base64,'
-        b64data = ''.join(b64data.strip().split())
+        B64_PREFIX = "base64,"
+        b64data = "".join(b64data.strip().split())
         if B64_PREFIX in b64data:
             b64data = b64data.split(B64_PREFIX)[-1]
         base64.b64decode(b64data, validate=True)
@@ -74,6 +74,7 @@ def parse_b64(b64data: str):
     except Exception as e:
         print(e)
         return None
+
 
 def local_img_to_b64(fname: str):
     try:
@@ -83,14 +84,16 @@ def local_img_to_b64(fname: str):
             img = f.read()
         return prefix + base64.b64encode(img).decode("utf-8")
     except Exception as e:
-        print('exc ', e)
-    
+        print("exc ", e)
+
+
 def b64_to_tensor(b64: str, blur=False, invert=True):
     if "," in b64:
         b64 = b64.split(",", 1)[1]
     data = base64.b64decode(b64)
-    img = Image.open(io.BytesIO(data)).convert('RGB')
-    if invert: img = ImageOps.invert(img)
+    img = Image.open(io.BytesIO(data)).convert("RGB")
+    if invert:
+        img = ImageOps.invert(img)
     preprocess = transforms.Compose(
         [
             transforms.Grayscale(),
@@ -99,7 +102,10 @@ def b64_to_tensor(b64: str, blur=False, invert=True):
             transforms.Normalize((0.1307,), (0.3081,)),
         ]
     )
-    if blur: preprocess.transforms.insert(-1, transforms.GaussianBlur(kernel_size=5, sigma=(0.04, 1.0)))
+    if blur:
+        preprocess.transforms.insert(
+            -1, transforms.GaussianBlur(kernel_size=5, sigma=(0.04, 1.0))
+        )
     tensor = preprocess(img)
     if tensor.dim() == 3:
         tensor = tensor.unsqueeze(0)
@@ -109,7 +115,8 @@ def b64_to_tensor(b64: str, blur=False, invert=True):
 def show_tensor(tensor, title=None):
     # display [1, 1, 28, 28] input tensor
     img = tensor.squeeze(0).squeeze(0)
-    plt.imshow(img, cmap='gray')
-    if title: plt.title(title)
-    plt.axis('off')
+    plt.imshow(img, cmap="gray")
+    if title:
+        plt.title(title)
+    plt.axis("off")
     plt.show()

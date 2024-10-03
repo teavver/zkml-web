@@ -224,7 +224,7 @@ def ezkl_verify(proof_path: str = PATHS["proof"]):
             return False
         return True
     except Exception as e:
-        print(f'ezkl_verify exc: {e}')
+        print(f"ezkl_verify exc: {e}")
         return False
 
 

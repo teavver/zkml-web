@@ -6,7 +6,6 @@ export const Home = () => {
     return (
       <Content>
         <Nav title={routes.home.title} />
-        <p>Homepage</p>
       </Content>
     )
 }

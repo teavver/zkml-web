@@ -1,3 +1,4 @@
+import React from "react"
 import { createBrowserRouter, RouteObject } from "react-router-dom"
 import { Home } from "./routes/Home"
 import { Prediction } from "./routes/Prediction"
@@ -25,6 +26,11 @@ export const routes: { [name: string]: { [k: string]: any } } = {
     path: "/verify",
     component: <Verify />
   },
+  github: {
+    title: "github repo",
+    path: "https://github.com/teavver/zkml-web/tree/main",
+    component: <React.Fragment />
+  }
 }
 
 export const router = createBrowserRouter(

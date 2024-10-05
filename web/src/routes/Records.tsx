@@ -39,23 +39,23 @@ export const Records = () => {
         <button disabled={status !== 'ready' || lastPage.current} onClick={() => handleFetchRecords(page + 1)}>Next</button>
       </div>
       {status !== 'ready' &&
-        <p>{status}</p>
+        <span>{status}</span>
       }
       {records.length > 0 &&
-        <div className="flex flex-col w-1/2">
+        <div className="flex flex-col gap-2 w-1/2">
           {records.map((record, idx) => (
-            <div key={idx} className="flex w-full items-center justify-between px-2">
+            <div key={idx} className="flex w-full items-center justify-between" style={{ borderBottom: "1px solid black"}}>
               <p>{record.id}.</p>
 
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 h-16">
                 <p>{"Input: "}</p>
-                <img className="flex mx-2 w-16 h-16" src={BASE_64_PREFIX + record.input} />
+                <img className="flex mx-2 w-14 h-14" src={BASE_64_PREFIX + record.input} />
                 <p>{`Prediction:`}&nbsp;</p>
                 <p className="text-3xl">{record.prediction_res}</p>
               </div>
 
               <div className="flex items-center gap-1">
-                <img 
+                <img
                   onClick={() => downloadProof(record.id)}
                   className="flex w-6 h-6 cursor-pointer"
                   src={proofIcon}

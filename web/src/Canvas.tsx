@@ -108,7 +108,7 @@ const Canvas = () => {
   }
 
   return (
-    <div>
+    <div className="flex">
       {canvasStatus === 'ready'
         ?
         <div className="flex flex-col">

@@ -1,3 +1,4 @@
+import { PredictionRecord } from "./types"
 
 const API_URL = "http://localhost:5000"
 const API_ENDPOINTS = {
@@ -25,4 +26,16 @@ export const sendPrediction = async (b64input: string, errCallback?: () => void)
   }
 }
 
-export const fetchPredictionRecords = async () => {}
+export const fetchPredictionRecords = async (): Promise<PredictionRecord[]> => {
+  try {
+    const url = API_URL + API_ENDPOINTS.GET_RECORDS
+    const data = await fetch(url)
+    console.log(data)
+    const json = await data.json()
+    console.log(json)
+    return json.records as PredictionRecord[]
+  } catch (err) {
+    console.error(err)
+    return []
+  }
+}

@@ -6,7 +6,6 @@ const BLOCK_SIZE = 16
 const CANVAS_SIZE = 28
 const CANVAS_WIDTH = CANVAS_SIZE * BLOCK_SIZE
 const CANVAS_HEIGHT = CANVAS_SIZE * BLOCK_SIZE
-const REQ_STATUS_RESET_MS = 5000
 
 const Canvas = () => {
 

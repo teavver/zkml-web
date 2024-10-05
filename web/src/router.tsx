@@ -1,6 +1,7 @@
 import { createBrowserRouter, RouteObject } from "react-router-dom"
 import { Home } from "./routes/Home"
 import { Prediction } from "./routes/Prediction"
+import { Records } from "./routes/Records"
 
 export const routes: { [name: string]: { [k: string]: any } } = {
   home: {
@@ -13,6 +14,11 @@ export const routes: { [name: string]: { [k: string]: any } } = {
     path: "/prediction",
     component: <Prediction />
   },
+  records: {
+    title: "Prediction Records",
+    path: "/records",
+    component: <Records />
+  }
 }
 
 export const router = createBrowserRouter(

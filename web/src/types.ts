@@ -11,7 +11,9 @@ export interface Point {
 }
 
 export interface PredictionRecord {
+  input: string
   id: number
-  prediction: number
+  prediction_res: number
   timestamp: number
+  proof?: string
 }

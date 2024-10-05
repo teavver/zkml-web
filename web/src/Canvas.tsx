@@ -1,3 +1,5 @@
+import { routes } from "./router"
+import { Link } from "react-router-dom"
 import { useEffect, useRef, useState } from "react"
 import { Point, Status, RequestStatus, DrawBlockType, PredictionRecord } from "./types"
 import { sendPrediction } from "./api"
@@ -100,6 +102,7 @@ const Canvas = () => {
         ?
         <div className="flex flex-col">
           <canvas id="canvas" ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} className="outline outline-1"
+            onMouseDown={(e) => handleMouseMove(e as unknown as MouseEvent)}
             onMouseMove={(e) => handleMouseMove(e as unknown as MouseEvent)}
             onMouseLeave={() => drawBaseCanvasFrame()}
           />
@@ -115,7 +118,10 @@ const Canvas = () => {
             </button>
           </div>
           {res &&
+          <div className="flex flex-col gap-2">
             <p className="mt-2">{JSON.stringify(res, null, 2)}</p>
+            <Link to={routes.records.path}>{"Go to Records"}</Link>
+          </div>
           }
         </div>
         : <p>...</p>

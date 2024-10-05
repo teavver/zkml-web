@@ -26,13 +26,11 @@ export const sendPrediction = async (b64input: string, errCallback?: () => void)
   }
 }
 
-export const fetchPredictionRecords = async (): Promise<PredictionRecord[]> => {
+export const fetchPredictionRecords = async (page?: number): Promise<PredictionRecord[]> => {
   try {
     const url = API_URL + API_ENDPOINTS.GET_RECORDS
-    const data = await fetch(url)
-    console.log(data)
+    const data = await fetch(url + (page ? `?page=${page}` : ''));
     const json = await data.json()
-    console.log(json)
     return json.records as PredictionRecord[]
   } catch (err) {
     console.error(err)

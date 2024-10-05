@@ -41,21 +41,23 @@ def create_app():
     @app.route("/get_records", methods=["GET"])
     async def get_records():
         limit = 10
-        start_query = "start_from"
-        start = request.args.get(start_query, default=None, type=int)
-        if start is not None:
-            if start is not isinstance(start, int):
-                return (
-                    f'invalid body data, expected key: "{start_query}" type: int',
-                    400,
-                )
-            query = {"id": {"$gte": start}}
+        page_query = "page"
+        page = request.args.get(page_query, default=0, type=int)
+        if not isinstance(page, int):
+            return (
+                f'invalid body data, expected key: "{page_query}" type: int',
+                400,
+            )
 
-        query = {}
-        cursor = current_app.db.find(
-            query, projection={"_id": 0, "proof": 0}, sort=[("id", -1)]
-        ).limit(limit)
-
+        if page < 0:
+            return "page number must be a positive integer", 400
+        skip = page * limit
+        cursor = (
+            current_app.db.find(projection={"_id": 0, "proof": 0})
+            .sort("_id", -1)
+            .skip(skip)
+            .limit(limit)
+        )
         records = [PredictionRecord(**doc, proof="") for doc in cursor]
         return {"records": [asdict(record) for record in records]}, 200
 

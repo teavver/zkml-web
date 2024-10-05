@@ -45,12 +45,14 @@ export const Records = () => {
           {records.map((record, idx) => (
             <div key={idx} className="flex w-full items-center justify-between px-2">
               <p>{record.id}.</p>
+
               <div className="flex items-center gap-1">
                 <p>{"Input: "}</p>
                 <img className="flex mx-2 w-16 h-16" src={BASE_64_PREFIX + record.input} />
                 <p>{`Prediction:`}&nbsp;</p>
                 <p className="text-3xl">{record.prediction_res}</p>
               </div>
+
               <p>{`
                 ${new Date(record.timestamp * SECOND_IN_MS).toLocaleDateString()}
                 ${new Date(record.timestamp * SECOND_IN_MS).toLocaleTimeString()}

@@ -14,6 +14,8 @@ const Canvas = () => {
   const [canvasStatus, setCanvasStatus] = useState<Status>('loading')
   const [reqStatus, setReqStatus] = useState<RequestStatus>('init')
   const [res, setRes] = useState<PredictionRecord>()
+  const [showGrid, setShowGrid] = useState<boolean>(false)
+  const [cursorPos, setCursorPos] = useState<Point | null>(null)
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const state = useRef<Set<string>>(new Set())
@@ -22,6 +24,11 @@ const Canvas = () => {
     if (!canvasRef) return
     setCanvasStatus('ready')
   }, [canvasRef])
+
+  useEffect(() => {
+    if (!canvasRef) return
+    drawBaseCanvasFrame()
+  }, [canvasRef, showGrid])
 
   const handlePredict = async () => {
     setReqStatus('loading')
@@ -50,8 +57,10 @@ const Canvas = () => {
 
   const handleMouseMove = (evt: MouseEvent) => {
     const ctx = canvasRef.current?.getContext("2d") as CanvasRenderingContext2D
-    const { x, y } = mousePosToBlock(convertMousePos(evt))
+    if (!ctx) return
 
+    const { x, y } = mousePosToBlock(convertMousePos(evt))
+    setCursorPos({ x, y })
     drawBaseCanvasFrame()
 
     if (evt.buttons === 1 && x >= 0 && x < CANVAS_SIZE && y >= 0 && y < CANVAS_SIZE) {
@@ -64,8 +73,16 @@ const Canvas = () => {
 
   const drawBaseCanvasFrame = () => {
     const ctx = canvasRef.current?.getContext("2d") as CanvasRenderingContext2D
+    if (!ctx) return
     ctx.fillStyle = 'white'
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
+    if (showGrid) {
+      for (let i = 0; i < CANVAS_SIZE; i++) {
+        for (let j = 0; j < CANVAS_SIZE; j++) {
+          drawBlock(ctx, { x: i, y: j }, 'stroke', 'rgba(0, 0, 0, 0.25)')
+        }
+      }
+    }
     drawStateBlocks(ctx)
   }
 
@@ -104,9 +121,12 @@ const Canvas = () => {
           <canvas id="canvas" ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} className="outline outline-1"
             onMouseDown={(e) => handleMouseMove(e as unknown as MouseEvent)}
             onMouseMove={(e) => handleMouseMove(e as unknown as MouseEvent)}
-            onMouseLeave={() => drawBaseCanvasFrame()}
+            onMouseLeave={() => {
+              drawBaseCanvasFrame()
+              setCursorPos(null)
+            }}
           />
-          <div className="flex gap-2 mt-2">
+          <div className="flex items-center gap-2 mt-2">
             <button onClick={handleClear}>
               {"clear"}
             </button>
@@ -116,12 +136,19 @@ const Canvas = () => {
             <button disabled={reqStatus !== 'init'} onClick={handlePredict}>
               {reqStatus !== 'init' ? reqStatus : 'predict!'}
             </button>
+            <div className="flex gap-1">
+              <span>Grid:</span>
+              <input type="checkbox" defaultChecked={showGrid} name="options-grid" onClick={() => setShowGrid(!showGrid)} />
+            </div>
+            {cursorPos !== null &&
+              <span>{JSON.stringify(cursorPos, null, 2)}</span>
+            }
           </div>
           {res &&
-          <div className="flex flex-col gap-2">
-            <p className="mt-2">{JSON.stringify(res, null, 2)}</p>
-            <Link to={routes.records.path}>{"Go to Records"}</Link>
-          </div>
+            <div className="flex flex-col gap-2">
+              <p className="mt-2">{JSON.stringify(res, null, 2)}</p>
+              <Link to={routes.records.path}>{"Go to Records"}</Link>
+            </div>
           }
         </div>
         : <p>...</p>

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { Point, Status, RequestStatus, DrawBlockType, PredictionRecord } from "./types"
-import { API_ENDPOINTS, API_URL } from "./utils"
+import { sendPrediction } from "./api"
 
 const BLOCK_SIZE = 16
 const CANVAS_SIZE = 28
@@ -27,23 +27,11 @@ const Canvas = () => {
     const canvas = document.getElementById("canvas") as HTMLCanvasElement
     const img = new Image()
     img.src = canvas.toDataURL("image/jpg")
-    const url = API_URL + API_ENDPOINTS.PREDICT
-    try {
-      const data = await fetch(url, {
-        method: "POST",
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ input: img.src })
-      })
-      const res = await data.json()
-      setRes(res as PredictionRecord)
-      setReqStatus('success')
-      setTimeout(() => setReqStatus('init'), REQ_STATUS_RESET_MS)
-    } catch (err) {
-      console.error((err as Error).message)
-      setReqStatus('error')
-    }
+    const res = await sendPrediction(img.src, () => setReqStatus('error'))
+    setRes(res)
+    setTimeout(() => {
+      setReqStatus('init')
+    }, 3000)
   }
 
   const handleDownload = () => {

@@ -1,5 +1,7 @@
 import { PredictionRecord } from "./types"
 
+export const API_REQ_ERR_TIMEOUT_MS = 4000
+
 const API_URL = "http://localhost:5000"
 const API_ENDPOINTS = {
   GET_RECORDS: "/get_records",
@@ -22,6 +24,25 @@ export const sendPrediction = async (b64input: string, errCallback?: () => void)
   } catch (err) {
     console.error(err)
     if (errCallback) errCallback()
+  }
+}
+
+export const verifyPreidction = async (proof: File, errCallback?: () => void): Promise<boolean> => {
+  try {
+    const url = API_URL + API_ENDPOINTS.VERIFY
+    const formData = new FormData()
+    formData.append("file", proof)
+    const res = await fetch(url, {
+      method: "POST",
+      body: formData,
+    })
+    const json = await res.json()
+    return json.verified as boolean
+    
+  } catch (err) {
+    console.error(err)
+    if (errCallback) errCallback()
+    return false
   }
 }
 

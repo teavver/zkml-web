@@ -156,8 +156,8 @@ def create_app():
 
         res = ezkl_verify(PATHS["proof"])
         if res == False:
-            return "NOT OK", 200
+            return {"verified": False }, 200
 
-        return "OK", 200
+        return {"verified": True }, 200
 
     return app

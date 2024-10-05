@@ -2,7 +2,7 @@ import { routes } from "./router"
 import { Link } from "react-router-dom"
 import { useEffect, useRef, useState } from "react"
 import { Point, Status, RequestStatus, DrawBlockType, PredictionRecord } from "./types"
-import { sendPrediction } from "./api"
+import { API_REQ_ERR_TIMEOUT_MS, sendPrediction } from "./api"
 
 const BLOCK_SIZE = 16 // px
 const CANVAS_SIZE = 28 // tiles
@@ -39,7 +39,7 @@ const Canvas = () => {
     setRes(res)
     setTimeout(() => {
       setReqStatus('init')
-    }, 3000)
+    }, API_REQ_ERR_TIMEOUT_MS)
   }
 
   const handleDownload = () => {

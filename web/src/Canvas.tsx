@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react"
 import { Point, Status, RequestStatus, DrawBlockType, PredictionRecord } from "./types"
 import { sendPrediction } from "./api"
 
-const BLOCK_SIZE = 16
-const CANVAS_SIZE = 28
+const BLOCK_SIZE = 16 // px
+const CANVAS_SIZE = 28 // tiles
 const CANVAS_WIDTH = CANVAS_SIZE * BLOCK_SIZE
 const CANVAS_HEIGHT = CANVAS_SIZE * BLOCK_SIZE
 
@@ -118,15 +118,33 @@ const Canvas = () => {
     <div className="flex">
       {canvasStatus === 'ready'
         ?
-        <div className="flex flex-col">
-          <canvas id="canvas" ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} className="outline outline-1"
-            onMouseDown={(e) => handleMouseMove(e as unknown as MouseEvent)}
-            onMouseMove={(e) => handleMouseMove(e as unknown as MouseEvent)}
-            onMouseLeave={() => {
-              drawBaseCanvasFrame()
-              setCursorPos(null)
-            }}
-          />
+        <div className="flex items-center flex-col">
+          <div className="mb-2 text-md">
+            <p>
+              Classic&nbsp;
+              <a target="_blank" rel="noopener noreferrer" href="https://en.wikipedia.org/wiki/MNIST_database">
+                MNIST
+              </a>
+              &nbsp;classifier.
+            </p>
+            <p>
+              It's small (~3K parameters) and fast enough for ZKML on a&nbsp;
+              <a target="_blank" rel="noopener noreferrer" href="https://www.parkytowers.me.uk/thin/hp/t520">
+                HP t520
+              </a>
+              .
+            </p>
+          </div>
+          <div className="flex">
+            <canvas id="canvas" ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} className="outline outline-1"
+              onMouseDown={(e) => handleMouseMove(e as unknown as MouseEvent)}
+              onMouseMove={(e) => handleMouseMove(e as unknown as MouseEvent)}
+              onMouseLeave={() => {
+                drawBaseCanvasFrame()
+                setCursorPos(null)
+              }}
+            />
+          </div>
           <div className="flex items-center gap-2 mt-2">
             <button onClick={handleClear}>
               {"clear"}
@@ -141,10 +159,10 @@ const Canvas = () => {
               <span>Grid:</span>
               <input type="checkbox" defaultChecked={showGrid} name="options-grid" onClick={() => setShowGrid(!showGrid)} />
             </div>
-            {cursorPos !== null &&
-              <span>{JSON.stringify(cursorPos, null, 2)}</span>
-            }
           </div>
+          {cursorPos !== null &&
+            <p>{JSON.stringify(cursorPos, null, 2)}</p>
+          }
           {res &&
             <div className="flex flex-col gap-2">
               <p className="mt-2">{JSON.stringify(res, null, 2)}</p>

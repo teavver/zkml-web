@@ -6,7 +6,7 @@ import { routes } from "../router";
 export const Prediction = () => {
   return (
     <Content>
-      <Nav title={routes.prediction.title} />
+      <Nav title={routes.predict.title} />
       <Canvas />
     </Content>
   )

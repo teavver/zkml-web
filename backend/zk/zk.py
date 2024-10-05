@@ -15,7 +15,6 @@ from utils import PATHS
 # Most of the code here comes from this example notebook:
 # https://colab.research.google.com/github/zkonduit/ezkl/blob/main/examples/notebooks/simple_demo_public_network_output
 
-
 def train(args, model, device, train_loader, optimizer, epoch):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):

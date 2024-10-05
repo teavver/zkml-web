@@ -4,6 +4,7 @@ const API_URL = "http://localhost:5000"
 const API_ENDPOINTS = {
   GET_RECORDS: "/get_records",
   GET_PROOF: "/get_proof",
+  GET_VK: "/get_vk",
 
   PREDICT: "/predict",
   VERIFY: "/verify",
@@ -39,6 +40,15 @@ export const fetchPredictionRecords = async (page?: number): Promise<PredictionR
 export const downloadProof = async (id: number) => {
   try {
     const url = API_URL + API_ENDPOINTS.GET_PROOF + `?id=${id}`
+    window.location.href = url
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+export const downloadVerifierKey = async () => {
+  try {
+    const url = API_URL + API_ENDPOINTS.GET_VK
     window.location.href = url
   } catch (err) {
     console.error(err)

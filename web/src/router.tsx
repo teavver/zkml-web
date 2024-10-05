@@ -2,23 +2,29 @@ import { createBrowserRouter, RouteObject } from "react-router-dom"
 import { Home } from "./routes/Home"
 import { Prediction } from "./routes/Prediction"
 import { Records } from "./routes/Records"
+import { Verify } from "./routes/Verify"
 
 export const routes: { [name: string]: { [k: string]: any } } = {
   home: {
-    title: "ZKML-web mnist demo",
+    title: "ZKML-web MNIST demo",
     path: "/",
     component: <Home />
   },
-  prediction: {
-    title: "Digit Prediction",
-    path: "/prediction",
+  predict: {
+    title: "Predict",
+    path: "/predict",
     component: <Prediction />
   },
   records: {
-    title: "Prediction Records",
+    title: "Records",
     path: "/records",
     component: <Records />
-  }
+  },
+  verify: {
+    title: "Verify",
+    path: "/verify",
+    component: <Verify />
+  },
 }
 
 export const router = createBrowserRouter(

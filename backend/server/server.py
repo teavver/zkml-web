@@ -66,7 +66,6 @@ def create_app():
         if not os.path.isfile(PATHS["vk"]):
             return f"we lost the vk file. GG", 500
         return send_file(os.path.abspath(PATHS["vk"]), as_attachment=True)
-        
 
     @app.route("/get_proof", methods=["GET"])
     async def get_proof():
@@ -87,7 +86,11 @@ def create_app():
             os.remove(PATHS["proof"])
 
         write_file(proof_data, PATHS["proof"])
-        return send_file(os.path.abspath(PATHS["proof"]), as_attachment=True, download_name=f'proof_{req_id}.pdf')
+        return send_file(
+            os.path.abspath(PATHS["proof"]),
+            as_attachment=True,
+            download_name=f"proof_{req_id}.pdf",
+        )
 
     @app.route("/predict", methods=["POST"])
     async def predict():
@@ -119,7 +122,7 @@ def create_app():
 
         proof = read_file(proof_path)
         if proof == None:
-            return "proof file read err", 500
+            return "internal err (pf file read)", 500
 
         record = asdict(PredictionRecord(**res, input=parsed_b64, proof=proof))
         db_res = current_app.db.insert_one(record)

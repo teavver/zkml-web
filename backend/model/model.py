@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch
 
+# https://colab.research.google.com/github/zkonduit/ezkl/blob/main/examples/notebooks/simple_demo_all_public.ipynb
 
 class Net(nn.Module):
     def __init__(self):

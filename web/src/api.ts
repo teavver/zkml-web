@@ -12,14 +12,12 @@ const API_ENDPOINTS = {
 export const sendPrediction = async (b64input: string, errCallback?: () => void) => {
   try {
     const url = API_URL + API_ENDPOINTS.PREDICT
-    const data = await fetch(url, {
+    const res = await fetch(url, {
       method: "POST",
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ input: b64input })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ input: b64input }),
     })
-    return await data.json()
+    return await res.json()
   } catch (err) {
     console.error(err)
     if (errCallback) errCallback()
@@ -29,11 +27,20 @@ export const sendPrediction = async (b64input: string, errCallback?: () => void)
 export const fetchPredictionRecords = async (page?: number): Promise<PredictionRecord[]> => {
   try {
     const url = API_URL + API_ENDPOINTS.GET_RECORDS
-    const data = await fetch(url + (page ? `?page=${page}` : ''));
-    const json = await data.json()
+    const res = await fetch(url + (page ? `?page=${page}` : ''))
+    const json = await res.json()
     return json.records as PredictionRecord[]
   } catch (err) {
     console.error(err)
     return []
+  }
+}
+
+export const downloadProof = async (id: number) => {
+  try {
+    const url = API_URL + API_ENDPOINTS.GET_PROOF + `?id=${id}`
+    window.location.href = url
+  } catch (err) {
+    console.error(err)
   }
 }

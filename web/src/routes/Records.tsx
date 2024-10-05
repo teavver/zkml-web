@@ -1,9 +1,10 @@
 import { Nav } from "../components/Nav";
 import { Content } from "../components/Content";
 import { useEffect, useRef, useState } from "react";
-import { fetchPredictionRecords } from "../api";
+import { downloadProof, fetchPredictionRecords } from "../api";
 import { PredictionRecord, RequestStatus } from "../types";
 import { routes } from "../router";
+import proofIcon from "../assets/proof.svg"
 
 export const Records = () => {
 
@@ -41,7 +42,7 @@ export const Records = () => {
         <p>{status}</p>
       }
       {records.length > 0 &&
-        <div className="flex flex-col w-1/3">
+        <div className="flex flex-col w-1/2">
           {records.map((record, idx) => (
             <div key={idx} className="flex w-full items-center justify-between px-2">
               <p>{record.id}.</p>
@@ -53,10 +54,19 @@ export const Records = () => {
                 <p className="text-3xl">{record.prediction_res}</p>
               </div>
 
-              <p>{`
-                ${new Date(record.timestamp * SECOND_IN_MS).toLocaleDateString()}
-                ${new Date(record.timestamp * SECOND_IN_MS).toLocaleTimeString()}
-              `}</p>
+              <div className="flex items-center gap-1">
+                <img 
+                  onClick={() => downloadProof(record.id)}
+                  className="flex w-6 h-6 cursor-pointer"
+                  src={proofIcon}
+                  alt="proof-icon"
+                  title="Download proof of computation"
+                />
+                <p>{`
+                  ${new Date(record.timestamp * SECOND_IN_MS).toLocaleDateString()}
+                  ${new Date(record.timestamp * SECOND_IN_MS).toLocaleTimeString()}
+                `}</p>
+              </div>
             </div>
           ))}
         </div>

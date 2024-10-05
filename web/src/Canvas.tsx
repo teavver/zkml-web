@@ -48,6 +48,7 @@ const Canvas = () => {
     link.download = 'zkml_web_drawing.jpg'
     link.href = img
     link.click()
+    link.remove()
   }
 
   const handleClear = () => {

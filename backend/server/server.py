@@ -61,7 +61,12 @@ def create_app():
         records = [PredictionRecord(**doc, proof="") for doc in cursor]
         return {"records": [asdict(record) for record in records]}, 200
 
-    # todo: get VK endpoint
+    @app.route("/get_vk", methods=["GET"])
+    async def get_vk():
+        if not os.path.isfile(PATHS["vk"]):
+            return f"we lost the vk file. GG", 500
+        return send_file(os.path.abspath(PATHS["vk"]), as_attachment=True)
+        
 
     @app.route("/get_proof", methods=["GET"])
     async def get_proof():
@@ -82,7 +87,7 @@ def create_app():
             os.remove(PATHS["proof"])
 
         write_file(proof_data, PATHS["proof"])
-        return send_file(os.path.abspath(PATHS["proof"]), as_attachment=True)
+        return send_file(os.path.abspath(PATHS["proof"]), as_attachment=True, download_name=f'proof_{req_id}.pdf')
 
     @app.route("/predict", methods=["POST"])
     async def predict():

@@ -5,7 +5,7 @@ calibration.json
 input.json
 settings.json
 prover_key.pk
-verifier_key.vk
+# verifier_key.vk
 witness.json
 *.compiled
 srs

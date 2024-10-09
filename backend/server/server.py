@@ -66,6 +66,7 @@ def create_app():
         if not os.path.isfile(PATHS["vk"]):
             return f"we lost the vk file. GG", 500
         return send_file(os.path.abspath(PATHS["vk"]), as_attachment=True)
+    
 
     @app.route("/get_proof", methods=["GET"])
     async def get_proof():
@@ -133,28 +134,67 @@ def create_app():
 
     @app.route("/verify", methods=["POST"])
     async def verify_proof():
-        if "file" not in request.files:
-            return 'required "file" in req', 400
+        
+        vk_path = PATHS["vk"]
+        srs_path = PATHS["srs"]
+        
+        if "proof" not in request.files:
+            return 'required "proof" in req', 400
 
-        file = request.files["file"]
-        if file.filename == "":
-            return "no selected file", 400
+        pf_file = request.files["proof"]
+        if pf_file.filename == "":
+            return "no selected proof file", 400
 
-        fname = secure_filename(file.filename)
+        fname = secure_filename(pf_file.filename)
         if fname[len(fname) - 3 :] != ".pf":
-            return "invalid file extension", 400
-
-        if os.path.isfile(PATHS["proof"]):
-            os.remove(PATHS["proof"])
+            return "invalid proof file extension", 400
 
         try:
-            proof_data = file.read().decode("utf-8")
+            proof_data = pf_file.read().decode("utf-8")
             write_file(proof_data, PATHS["proof"])
         except UnicodeDecodeError as e:
-            print(f"/verify file encoding err: {e}")
-            return "invalid file encoding", 400
+            print(f"/verify proof file encoding err: {e}")
+            return "invalid proof file encoding", 400
+        
+        # user VK
+        if "vk" in request.files:
+            vk_expected_fname = ".vk"
+            vk_file = request.files["vk"]
+            vk_fname = secure_filename(vk_file.filename)
+            
+            if vk_fname[len(vk_fname) - 3 :] != vk_expected_fname:
+                return f"invalid VK file extension. '{vk_expected_fname}' expected.", 400
+            
+            try:
+                vk_data = vk_file.read()
+                if isinstance(vk_data, bytes):
+                    write_file(vk_data, PATHS["vk_user"])
+                    vk_path = PATHS["vk_user"]
+                else:
+                    return "error while reading VK file", 400
+            except Exception as e:
+                print(f"/verify VK file encoding err: {e}")
+                return "invalid VK file format", 400
+            
+            
+        # user SRS
+        if "srs" in request.files:
+            srs_file = request.files["srs"]
+            if srs_file.filename == "":
+                return "no selected SRS file", 400
+            
+            try:
+                srs_data = srs_file.read()
+                if isinstance(srs_data, bytes):
+                    write_file(srs_data, PATHS["srs_user"])
+                    srs_path = PATHS["srs_user"]
+                else:
+                    return "error while reading SRS file", 400
+            except UnicodeDecodeError as e:
+                print(f"/verify SRS file encoding err: {e}")
+                return "invalid SRS file format", 400
 
-        res = ezkl_verify(PATHS["proof"])
+        res = ezkl_verify(PATHS["proof"], vk_path, srs_path)
         if res == False:
             return {"verified": False }, 200
 

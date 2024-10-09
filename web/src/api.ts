@@ -33,7 +33,8 @@ export const verifyPreidction = async (proof: File, vk?: File | null, srs?: File
     const url = API_URL + API_ENDPOINTS.VERIFY
     const formData = new FormData()
     const files = [proof, vk, srs].filter((file) => file !== null) as File[]
-    files.forEach(file => formData.append("file", file))
+    const filenames = ["proof", "vk", "srs"]
+    files.forEach((file, idx) => formData.append(filenames[idx], file))
     const res = await fetch(url, {
       method: "POST",
       body: formData,

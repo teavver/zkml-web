@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from PIL import Image, ImageOps
 from torchvision import transforms
 from model.model import Net
+from typing import Union
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from pymongo.collection import Collection
@@ -23,11 +24,14 @@ PATHS = {
     "vk": "verifier_key.vk",
     "calibration": "calibration.json",
     "srs": "srs",
+    ## /verify user custom
+    "vk_user": "vk_user",
+    "srs_user": "srs_user",
 }
 
 
 def env_check():
-    expected_keys = ['DB_USER', 'DB_PASS']
+    expected_keys = ["DB_USER", "DB_PASS"]
     for key in expected_keys:
         val = os.getenv(key)
         if val is None:
@@ -44,9 +48,10 @@ def read_file(fname: str) -> str | None:
         return None
 
 
-def write_file(content: str, fname: str):
+def write_file(content: Union[str, bytes], fname: str):
     try:
-        with open(fname, "w") as f:
+        mode = "w" if isinstance(content, str) else "wb"
+        with open(fname, mode) as f:
             f.write(content)
     except Exception as e:
         print(f"failed to write file {fname}, err: {e}")
@@ -100,7 +105,7 @@ def b64_to_tensor(b64: str, blur=False, invert=True):
         b64 = b64.split(",", 1)[1]
     data = base64.b64decode(b64)
     img = Image.open(io.BytesIO(data)).convert("RGB")
-    if invert: 
+    if invert:
         img = ImageOps.invert(img)
     preprocess = transforms.Compose(
         [

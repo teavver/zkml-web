@@ -214,9 +214,9 @@ def ezkl_prove(proof_path: str = PATHS["proof"]) -> bool:
     return True
 
 
-def ezkl_verify(proof_path: str = PATHS["proof"]):
+def ezkl_verify(proof_path: str = PATHS["proof"], vk_path: str = PATHS["vk"], srs_path: str = PATHS["srs"]):
     try:
-        res = ezkl.verify(proof_path, PATHS["settings"], PATHS["vk"], PATHS["srs"])
+        res = ezkl.verify(proof_path, PATHS["settings"], vk_path, srs_path)
         if res != True:
             print("ezkl failed to verify this computation")
             # todo: debug info about record

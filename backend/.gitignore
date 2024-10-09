@@ -9,6 +9,12 @@ witness.json
 *.compiled
 *calibration*
 *.pf
+
+# user
+srs_user
+vk_user
+
+# public
 # verifier_key.vk
 # srs
 

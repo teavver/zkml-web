@@ -10,22 +10,26 @@ import { RequestStatus } from "../types";
 export const Verify = () => {
 
   const [reqStatus, setReqStatus] = useState<RequestStatus>('init')
-  const [proof, setProof] = useState<File | null>(null)
   const [msg, setMsg] = useState<string>("")
+  // input files
+  const [proof, setProof] = useState<File | null>(null)
+  const [vk, setVk] = useState<File | null>(null)
+  const [srs, setSrs] = useState<File | null>(null)
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const PROOF_EXT = ".pf"
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, ext?: string): File | void => {
     if (!event.target.files) return
     const file = event.target.files[0]
     if (!file) return
-    if (!file.name.endsWith(PROOF_EXT)) return
-    setProof(file)
+    if (ext) {
+      if (!file.name.endsWith(ext)) return
+    }
+    return file
   }
 
   const handleVerifyPrediction = async () => {
     if (!proof) return
     setReqStatus('loading')
-    const verified: boolean = await verifyPreidction(proof, () => {
+    const verified = await verifyPreidction(proof, vk, srs, () => {
       setReqStatus('error')
       setTimeout(() => setReqStatus('init'), API_REQ_ERR_TIMEOUT_MS)
     })
@@ -60,14 +64,17 @@ export const Verify = () => {
             </div>
           </li>
           <li>
-            You can also&nbsp;
-            &nbsp;the Verifier Key (VK) for the Public Setup&nbsp;
+            You can also download the Verifier Key (VK)&nbsp;
             <Link to={""} onClick={() => downloadFile(API_ENDPOINTS.GET_VK)}>here</Link>
             &nbsp;and the SRS file&nbsp;
             <Link to={""} onClick={() => downloadFile(API_ENDPOINTS.GET_SRS)}>here</Link>
             .
           </li>
           <li>Attach the files and verify if your prediction was computed by our Model</li>
+          <p className="font-semibold">The VK and SRS you download here should match the&nbsp;
+            <Link target={"_blank"} to={"https://github.com/teavver/zkml-web/tree/main/backend"}>codebase files</Link>
+            .
+          </p>
         </ul>
 
         <div className="flex flex-col gap-1 items-center">
@@ -77,11 +84,42 @@ export const Verify = () => {
               type="file"
               name="verify-input-proof"
               accept=".pf"
-              onChange={handleFileChange}
+              onChange={(e) => {
+                const file = handleFileChange(e, ".pf")
+                if (!file) return
+                setProof(file)
+              }}
             />
           </div>
+          <div className="flex gap-1">
+            <span>VK*:</span>
+            <input
+              type="file"
+              name="verify-input-vk"
+              accept=".vk"
+              onChange={(e) => {
+                const file = handleFileChange(e, ".vk")
+                if (!file) return
+                setVk(file)
+              }}
+            />
+          </div>
+          <div className="flex gap-1">
+            <span>SRS*:</span>
+            <input
+              type="file"
+              name="verify-input-srs"
+              onChange={(e) => {
+                const file = handleFileChange(e)
+                if (!file) return
+                setSrs(file)
+              }}
+            />
+          </div>
+          <p>* = Optional</p>
+
           <div className="my-2">
-            <button onClick={handleVerifyPrediction}>Verify</button>
+            <button disabled={proof === null} onClick={handleVerifyPrediction}>Verify</button>
           </div>
         </div>
 

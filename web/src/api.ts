@@ -28,18 +28,18 @@ export const sendPrediction = async (b64input: string, errCallback?: () => void)
   }
 }
 
-export const verifyPreidction = async (proof: File, errCallback?: () => void): Promise<boolean> => {
+export const verifyPreidction = async (proof: File, vk?: File | null, srs?: File | null, errCallback?: () => void): Promise<boolean> => {
   try {
     const url = API_URL + API_ENDPOINTS.VERIFY
     const formData = new FormData()
-    formData.append("file", proof)
+    const files = [proof, vk, srs].filter((file) => file !== null) as File[]
+    files.forEach(file => formData.append("file", file))
     const res = await fetch(url, {
       method: "POST",
       body: formData,
     })
     const json = await res.json()
     return json.verified as boolean
-    
   } catch (err) {
     console.error(err)
     if (errCallback) errCallback()

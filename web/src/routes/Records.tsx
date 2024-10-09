@@ -1,8 +1,9 @@
 import { Nav } from "../components/Nav";
 import { Content } from "../components/Content";
 import { useEffect, useRef, useState } from "react";
-import { downloadProof, fetchPredictionRecords } from "../api";
+import { downloadFile, fetchPredictionRecords } from "../api";
 import { PredictionRecord, RequestStatus } from "../types";
+import { API_ENDPOINTS } from "../api";
 import { routes } from "../router";
 import proofIcon from "../assets/proof.svg"
 
@@ -31,6 +32,11 @@ export const Records = () => {
     } else setStatus('error')
   }
 
+  // const downloadProof = async (recordId: number) => {
+  //   const url = API_URL + API_ENDPOINTS.GET_PROOF + `?id=${recordId}`
+  //   downloadFile(url)
+  // }
+
   return (
     <Content>
       <Nav title={routes.records.title} />
@@ -56,7 +62,7 @@ export const Records = () => {
 
               <div className="flex items-center gap-1">
                 <img
-                  onClick={() => downloadProof(record.id)}
+                  onClick={() => downloadFile(API_ENDPOINTS.GET_PROOF,`?id=${record.id}`)}
                   className="flex w-6 h-6 cursor-pointer"
                   src={proofIcon}
                   alt="proof-icon"

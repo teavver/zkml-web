@@ -289,6 +289,11 @@ async def ezkl_configure(model_onnx_path: str = PATHS["model_onnx"]):
 async def ezkl_full_setup(cleanup: bool = True):
     start = time()
     net = Net()
+    
+    if not os.path.isfile(PATHS["model"]):
+        print(f'No model file, cant continue EZKL setup')
+        os._exit(1)
+
     net.load_state_dict(torch.load(PATHS["model"]))
     if cleanup:
         await ezkl_clear_config()

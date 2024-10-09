@@ -5,12 +5,12 @@ calibration.json
 input.json
 settings.json
 prover_key.pk
-# verifier_key.vk
 witness.json
 *.compiled
-srs
 *calibration*
 *.pf
+# verifier_key.vk
+# srs
 
 #
 _*.pt

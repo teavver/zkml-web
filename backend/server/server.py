@@ -89,7 +89,7 @@ def create_app():
         return send_file(
             os.path.abspath(PATHS["proof"]),
             as_attachment=True,
-            download_name=f"proof_{req_id}.pdf",
+            download_name=f"proof_{req_id}.pf",
         )
 
     @app.route("/predict", methods=["POST"])

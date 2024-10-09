@@ -3,7 +3,7 @@ import { Content } from "../components/Content";
 import { Nav } from "../components/Nav";
 import { routes } from "../router";
 import proofIcon from "../assets/proof.svg"
-import { API_REQ_ERR_TIMEOUT_MS, downloadVerifierKey, verifyPreidction } from "../api";
+import { API_ENDPOINTS, API_REQ_ERR_TIMEOUT_MS, verifyPreidction, downloadFile } from "../api";
 import { useState } from "react";
 import { RequestStatus } from "../types";
 
@@ -50,6 +50,7 @@ export const Verify = () => {
             <div className="flex gap-0.5">
               Grab the Proof of Computation by clicking the
               <img
+                draggable={false}
                 className="flex w-6 h-6"
                 src={proofIcon}
                 alt="proof-icon"
@@ -60,8 +61,11 @@ export const Verify = () => {
           </li>
           <li>
             You can also&nbsp;
-            <Link to={""} onClick={downloadVerifierKey}>download</Link>
-            &nbsp;the Verifier Key (VK) for the Public Setup model and verify it yourself
+            &nbsp;the Verifier Key (VK) for the Public Setup&nbsp;
+            <Link to={""} onClick={() => downloadFile(API_ENDPOINTS.GET_VK)}>here</Link>
+            &nbsp;and the SRS file&nbsp;
+            <Link to={""} onClick={() => downloadFile(API_ENDPOINTS.GET_SRS)}>here</Link>
+            .
           </li>
           <li>Attach the files and verify if your prediction was computed by our Model</li>
         </ul>

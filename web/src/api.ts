@@ -2,10 +2,11 @@ import { PredictionRecord } from "./types"
 
 export const API_REQ_ERR_TIMEOUT_MS = 4000
 
-const API_URL = "http://localhost:5000"
-const API_ENDPOINTS = {
+export const API_URL = "http://localhost:5000"
+export const API_ENDPOINTS = {
   GET_RECORDS: "/get_records",
   GET_PROOF: "/get_proof",
+  GET_SRS: "/get_srs",
   GET_VK: "/get_vk",
 
   PREDICT: "/predict",
@@ -58,20 +59,7 @@ export const fetchPredictionRecords = async (page?: number): Promise<PredictionR
   }
 }
 
-export const downloadProof = async (id: number) => {
-  try {
-    const url = API_URL + API_ENDPOINTS.GET_PROOF + `?id=${id}`
-    window.location.href = url
-  } catch (err) {
-    console.error(err)
-  }
-}
-
-export const downloadVerifierKey = async () => {
-  try {
-    const url = API_URL + API_ENDPOINTS.GET_VK
-    window.location.href = url
-  } catch (err) {
-    console.error(err)
-  }
+export const downloadFile = async (endpoint: string, query: string = "") => {
+  const url = API_URL + endpoint + query
+  window.location.href = url
 }

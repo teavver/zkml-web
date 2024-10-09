@@ -26,6 +26,14 @@ PATHS = {
 }
 
 
+def env_check():
+    expected_keys = ['DB_USER', 'DB_PASS']
+    for key in expected_keys:
+        val = os.getenv(key)
+        if val is None:
+            print(f'key "{key} is missing in .env, app might crash')
+
+
 def read_file(fname: str) -> str | None:
     try:
         with open(fname) as f:

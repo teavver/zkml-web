@@ -95,8 +95,8 @@ const Canvas = () => {
   }
 
   const convertMousePos = (evt: MouseEvent): Point => {
-    //@ts-ignore
-    let rect = evt.target.getBoundingClientRect()
+    //@ts-expect-error w/e
+    const rect = evt.target.getBoundingClientRect()
     return { x: evt.clientX - rect.left, y: evt.clientY - rect.top }
   }
 

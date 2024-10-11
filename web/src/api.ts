@@ -2,7 +2,9 @@ import { PredictionRecord } from "./types"
 
 export const API_REQ_ERR_TIMEOUT_MS = 4000
 
-export const API_URL = "http://localhost:5000"
+// export const API_URL = "http://localhost:5000"
+export const API_URL = "http://64.226.103.229:5000"
+
 export const API_ENDPOINTS = {
   GET_RECORDS: "/get_records",
   GET_PROOF: "/get_proof",

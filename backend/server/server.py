@@ -11,6 +11,9 @@ from utils import create_db_client, PATHS
 from dataclasses import dataclass, asdict
 
 
+KB_IN_BYTES = 1024
+
+
 @dataclass(frozen=True)
 class PredictionResult:
     prediction_res: int
@@ -26,8 +29,15 @@ class PredictionRecord(PredictionResult):
 
 def create_app():
     app = Flask(__name__)
-    app.config["MAX_CONTENT_LENGTH"] = 512000  # 500KB limit
     CORS(app)
+    
+    # accept big requests, but only for /verify
+    @app.before_request
+    def limit_content_length():
+        if request.endpoint == "verify_proof":
+            app.config["MAX_CONTENT_LENGTH"] = 6 * KB_IN_BYTES * KB_IN_BYTES  # 6MB limit
+        else:
+            app.config["MAX_CONTENT_LENGTH"] = 500 * KB_IN_BYTES # 500KB limit
 
     with app.app_context():
         current_app.net = load_net()
@@ -64,9 +74,16 @@ def create_app():
     @app.route("/get_vk", methods=["GET"])
     async def get_vk():
         if not os.path.isfile(PATHS["vk"]):
-            return f"we lost the vk file. GG", 500
+            return f"we lost the vk file", 500
         return send_file(os.path.abspath(PATHS["vk"]), as_attachment=True)
-    
+
+
+    @app.route("/get_srs", methods=["GET"])
+    async def get_srs():
+        if not os.path.isfile(PATHS["srs"]):
+            return f"we lost the srs file", 500
+        return send_file(os.path.abspath(PATHS["srs"]), as_attachment=True)
+
 
     @app.route("/get_proof", methods=["GET"])
     async def get_proof():
@@ -134,10 +151,10 @@ def create_app():
 
     @app.route("/verify", methods=["POST"])
     async def verify_proof():
-        
+
         vk_path = PATHS["vk"]
         srs_path = PATHS["srs"]
-        
+
         if "proof" not in request.files:
             return 'required "proof" in req', 400
 
@@ -155,16 +172,16 @@ def create_app():
         except UnicodeDecodeError as e:
             print(f"/verify proof file encoding err: {e}")
             return "invalid proof file encoding", 400
-        
+
         # user VK
         if "vk" in request.files:
             vk_expected_fname = ".vk"
             vk_file = request.files["vk"]
             vk_fname = secure_filename(vk_file.filename)
-            
+
             if vk_fname[len(vk_fname) - 3 :] != vk_expected_fname:
                 return f"invalid VK file extension. '{vk_expected_fname}' expected.", 400
-            
+
             try:
                 vk_data = vk_file.read()
                 if isinstance(vk_data, bytes):
@@ -175,14 +192,14 @@ def create_app():
             except Exception as e:
                 print(f"/verify VK file encoding err: {e}")
                 return "invalid VK file format", 400
-            
-            
+
+
         # user SRS
         if "srs" in request.files:
             srs_file = request.files["srs"]
             if srs_file.filename == "":
                 return "no selected SRS file", 400
-            
+
             try:
                 srs_data = srs_file.read()
                 if isinstance(srs_data, bytes):
